@@ -1,23 +1,16 @@
-
 from direct.showbase.ShowBase import ShowBase
 from panda3d.core import (
-    Vec3, AmbientLight, DirectionalLight, Filename, LineSegs, loadPrcFileData,
+    Vec3, AmbientLight, DirectionalLight, Filename,
     NodePath, Material, Quat, TextNode, TransparencyAttrib,
     GeomVertexFormat, GeomVertexData, Geom, GeomTriangles,
-    GeomVertexWriter, GeomNode, ClockObject
+    GeomVertexWriter, GeomNode
 )
 from direct.gui.OnscreenText import OnscreenText
 from direct.task import Task
-from gltf import load_model as load_gltf_model
 import math
 import random
 import sys
 from pathlib import Path
-
-globalClock = ClockObject.getGlobalClock()
-
-# Give the HUD enough physical pixels to remain readable on launch.
-loadPrcFileData("", "win-size 1600 900\nwin-origin 80 50")
 
 # ============================================================
 # Portable asset loading
@@ -26,11 +19,6 @@ BASE_DIR = Path(__file__).resolve().parent
 
 def asset_path(name: str) -> str:
     return str(BASE_DIR / name)
-
-
-def load_gltf(name: str) -> NodePath:
-    """Load bundled GLB assets without relying on loader-plugin registration."""
-    return NodePath(load_gltf_model(asset_path(name)))
 
 # ============================================================
 # World / gameplay settings
@@ -44,37 +32,29 @@ CLOUD_MAX_SIZE = 200
 
 # Player aircraft
 PLAYER_MODEL_PATH = "ba_f-15ex_eagle_ii.glb"
-# GLB conversion yields +Y forward, +Z up, and +X right: Panda's aircraft axes.
-F15_MODEL_ROTATION = Vec3(0, 0, 0)
+PLAYER_VISUAL_FIX_HPR = Vec3(0, 90, 180)
 PLAYER_SCALE = 110
 PLAYER_START_POS = Vec3(0, 0, 1000)
 PLAYER_START_HPR = Vec3(0, 0, 0)
 
 # Enemy aircraft
 ENEMY_MODEL_PATH = "enemy.glb"
-# The imported SU-57 uses +X forward and +Z up; heading maps its nose to +Y.
-ENEMY_MODEL_ROTATION = Vec3(90, 0, 0)
+ENEMY_VISUAL_FIX_HPR = Vec3(90, 90, 0)
 ENEMY_SCALE = 0.1
 ENEMY_START_POS = Vec3(0, 3000, 1200)
 ENEMY_START_HPR = Vec3(180, 0, 0)
 
 # Missile
 MISSILE_MODEL_PATH = "aim-9_missile.glb"
-# The AIM-9 mesh is 2 imported units long along +Y.  This is a world scale:
-# approximately 3.5 m long next to the 21 m F-15 model.
-MISSILE_MODEL_SCALE = 1.75
-# GLB conversion already gives the missile Panda's +Y-forward orientation.
-MISSILE_MODEL_ROTATION = Vec3(0.0, 0.0, 0.0)
-MISSILE_LAUNCH_OFFSET = Vec3(-4.0, 4.0, -0.8)
-MISSILE_LAUNCH_SPEED = 350.0
+MISSILE_RELATIVE_SCALE = 0.05
+MISSILE_MOUNT_POS = Vec3(0.0, 0.0, 0.09)
+MISSILE_MOUNT_HPR = Vec3(0.0, 0.0, 0.0)
+MISSILE_LAUNCH_SPEED = 35.0
 MISSILE_MAX_LIFETIME = 20.0
 MISSILE_MAX_RANGE = 25000.0
-# Covers the enemy aircraft's approximately 20 m scaled length.
-MISSILE_HIT_RADIUS = 20.0
-
-# Enable only to verify the existing straight-line missile collision path.
-DEBUG_MISSILE_TEST = False
-DEBUG_ENEMY_START_POS = Vec3(0, 900, 1000)
+# Collision capture radius. This exceeds the maximum ~41.75 m missile travel in
+# one capped 0.05 s physics update at maximum launch velocity.
+MISSILE_HIT_RADIUS = 50.0
 
 # Physics
 GRAVITY = 0.0
@@ -134,37 +114,38 @@ def shortest_angle_delta(target, current):
     return wrap_angle_deg(target - current)
 
 
-def random_point_in_sphere(radius):
+def random_point_in_sphere(radius, rng):
     while True:
         p = Vec3(
-            random.uniform(-1, 1),
-            random.uniform(-1, 1),
-            random.uniform(-1, 1),
+            rng.uniform(-1, 1),
+            rng.uniform(-1, 1),
+            rng.uniform(-1, 1),
         )
         if vec_length_sq(p) <= 1.0:
             if vec_length_sq(p) > 1e-8:
                 p.normalize()
-            p *= radius * (random.random() ** (1.0 / 3.0))
+            p *= radius * (rng.random() ** (1.0 / 3.0))
             return p
 
 
 class Cloud:
-    def __init__(self, showbase, position, size):
+    def __init__(self, showbase, position, size, rng):
         self.showbase = showbase
         self.position = position
         self.size = size
+        self.rng = rng
         self.node = None
         self.create_cloud()
 
     def create_cloud(self):
         cloud_node = NodePath("cloud")
-        num_puffs = random.randint(3, 5)
+        num_puffs = self.rng.randint(3, 5)
         for _ in range(num_puffs):
             puff = self.create_cloud_puff()
             puff.setPos(
-                random.uniform(-self.size * 0.3, self.size * 0.3),
-                random.uniform(-self.size * 0.3, self.size * 0.3),
-                random.uniform(-self.size * 0.1, self.size * 0.2),
+                self.rng.uniform(-self.size * 0.3, self.size * 0.3),
+                self.rng.uniform(-self.size * 0.3, self.size * 0.3),
+                self.rng.uniform(-self.size * 0.1, self.size * 0.2),
             )
             puff.reparentTo(cloud_node)
 
@@ -184,9 +165,9 @@ class Cloud:
         normal = GeomVertexWriter(vdata, 'normal')
         color = GeomVertexWriter(vdata, 'color')
 
-        r = random.uniform(0.85, 0.95)
-        g = random.uniform(0.85, 0.95)
-        b = random.uniform(0.85, 0.95)
+        r = self.rng.uniform(0.85, 0.95)
+        g = self.rng.uniform(0.85, 0.95)
+        b = self.rng.uniform(0.85, 0.95)
 
         segments = 12
         rings = 8
@@ -248,7 +229,7 @@ class AircraftActor:
         self.visual_root = self.root.attachNewNode(f"{name}_visual_root")
 
         try:
-            self.model = load_gltf(model_path)
+            self.model = sim.loader.loadModel(Filename.fromOsSpecific(asset_path(model_path)))
         except Exception as e:
             raise RuntimeError(f"Error loading {name} model '{model_path}': {e}")
 
@@ -281,11 +262,10 @@ class AircraftActor:
             pass
 
         self.position = Vec3(initial_pos)
-        # initial_hpr follows Panda3D order: heading, pitch, roll.
-        self.yaw = initial_hpr.x
+        self.velocity = Vec3(0, 150, 0)
+        self.roll = initial_hpr.x
         self.pitch = initial_hpr.y
-        self.roll = initial_hpr.z
-        self.velocity = self.get_forward_vector() * 150.0
+        self.yaw = initial_hpr.z
 
         self.roll_rate = 0.0
         self.pitch_rate = 0.0
@@ -318,10 +298,9 @@ class AircraftActor:
         self.use_missile_mount = use_missile_mount
         self.missile_mount_node = None
         if use_missile_mount:
-            # This belongs to the physics root so its local launch offset is not
-            # affected by the F-15's model-only visual correction.
-            self.missile_mount_node = self.root.attachNewNode(f"{name}_missile_mount")
-            self.missile_mount_node.setPos(MISSILE_LAUNCH_OFFSET)
+            self.missile_mount_node = self.visual_root.attachNewNode(f"{name}_missile_mount")
+            self.missile_mount_node.setPos(MISSILE_MOUNT_POS)
+            self.missile_mount_node.setHpr(MISSILE_MOUNT_HPR)
 
         self.boundary_sphere = None
 
@@ -356,7 +335,8 @@ class AircraftActor:
 
 
 class JetSim(ShowBase):
-    def __init__(self):
+    def __init__(self, enable_missile_vfx=False):
+        self.rng = random.Random()
         super().__init__()
 
         self.render.setShaderAuto()
@@ -384,39 +364,38 @@ class JetSim(ShowBase):
             initial_pos=PLAYER_START_POS,
             initial_hpr=PLAYER_START_HPR,
             scale=PLAYER_SCALE,
-            visual_fix_hpr=F15_MODEL_ROTATION,
+            visual_fix_hpr=PLAYER_VISUAL_FIX_HPR,
             use_missile_mount=True,
         )
 
-        enemy_start_pos = DEBUG_ENEMY_START_POS if DEBUG_MISSILE_TEST else ENEMY_START_POS
         self.enemy = AircraftActor(
             sim=self,
             name="enemy",
             model_path=ENEMY_MODEL_PATH,
-            initial_pos=enemy_start_pos,
+            initial_pos=ENEMY_START_POS,
             initial_hpr=ENEMY_START_HPR,
             scale=ENEMY_SCALE,
-            visual_fix_hpr=ENEMY_MODEL_ROTATION,
+            visual_fix_hpr=ENEMY_VISUAL_FIX_HPR,
             use_missile_mount=False,
         )
         self.enemy.autopilot = True
-        self.enemy.ai_patrol_center = Vec3(enemy_start_pos)
-        self.enemy.ai_waypoint = Vec3(enemy_start_pos)
-        if DEBUG_MISSILE_TEST:
-            self.enemy.velocity = Vec3(0, 0, 0)
-            self.enemy.current_speed = 0.0
-            self.enemy.target_speed = 0.0
+        self.enemy.ai_patrol_center = Vec3(ENEMY_START_POS)
+        self.enemy.ai_waypoint = Vec3(ENEMY_START_POS)
 
         self.load_boundary_sphere()
 
         self.missile = None
         self.attach_missile()
         self.active_missiles = []
+        self.missile_hit = False
+        self.missile_hit_count = 0
+        self.target_destroyed = False
+        self.missile_vfx = None
+        if enable_missile_vfx:
+            self.enable_missile_effects(cinematic=False)
 
-        # Elevated cockpit chase view.  Target the nose, not a distant point,
-        # so the aircraft remains in frame.
-        self.camera_offset = Vec3(0, -55, 42)
-        self.camera_look_offset = Vec3(0, 12, 0)
+        self.camera_offset = Vec3(0, -30, 10)
+        self.camera_look_offset = Vec3(0, 50, 0)
         self.camera_mode = 0
 
         self.game_over = False
@@ -431,50 +410,41 @@ class JetSim(ShowBase):
     # ========================================================
     # Scene setup
     # ========================================================
+    def set_seed(self, seed):
+        self.rng.seed(seed)
+
     def create_clouds(self):
         print(f"Creating {NUM_CLOUDS} clouds...")
         for _ in range(NUM_CLOUDS):
-            angle = random.uniform(0, 2 * math.pi)
-            distance = random.uniform(0, CLOUD_AREA_RADIUS)
+            angle = self.rng.uniform(0, 2 * math.pi)
+            distance = self.rng.uniform(0, CLOUD_AREA_RADIUS)
             x = math.cos(angle) * distance
             y = math.sin(angle) * distance
-            z = random.uniform(CLOUD_MIN_ALTITUDE, CLOUD_MAX_ALTITUDE)
-            size = random.uniform(CLOUD_MIN_SIZE, CLOUD_MAX_SIZE)
-            cloud = Cloud(self, Vec3(x, y, z), size)
+            z = self.rng.uniform(CLOUD_MIN_ALTITUDE, CLOUD_MAX_ALTITUDE)
+            size = self.rng.uniform(CLOUD_MIN_SIZE, CLOUD_MAX_SIZE)
+            cloud = Cloud(self, Vec3(x, y, z), size, self.rng)
             self.clouds.append(cloud)
         print("Clouds created successfully!")
 
     def load_boundary_sphere(self):
-        # Use a unit wire sphere rather than Panda's optional sphere.egg asset.
-        # It remains centered on, and is scaled by, the enemy physics root.
-        lines = LineSegs("chase_boundary")
-        lines.setThickness(2.0)
-        lines.setColor(1.0, 0.4, 0.1, 0.45)
-        segments = 64
-        for axis in range(3):
-            for i in range(segments + 1):
-                angle = 2.0 * math.pi * i / segments
-                a, b = math.cos(angle), math.sin(angle)
-                point = (
-                    Vec3(a, b, 0) if axis == 0 else
-                    Vec3(a, 0, b) if axis == 1 else
-                    Vec3(0, a, b)
-                )
-                if i == 0:
-                    lines.moveTo(point)
-                else:
-                    lines.drawTo(point)
-
-        sphere = self.enemy.root.attachNewNode(lines.create())
-        sphere.setScale(CHASE_BOUNDARY_RADIUS)
-        sphere.setTransparency(TransparencyAttrib.MAlpha)
-        self.enemy.boundary_sphere = sphere
+        try:
+            sphere = self.loader.loadModel("models/misc/sphere")
+            sphere.reparentTo(self.enemy.root)
+            sphere.setScale(CHASE_BOUNDARY_RADIUS)
+            sphere.setPos(0, 0, 0)
+            sphere.setTransparency(TransparencyAttrib.MAlpha)
+            sphere.setColor(1.0, 0.4, 0.1, 0.08)
+            sphere.setTwoSided(True)
+            self.enemy.boundary_sphere = sphere
+        except Exception as e:
+            print("Boundary sphere could not be loaded:", e)
+            self.enemy.boundary_sphere = None
 
     def create_hud(self):
         self.hud_text = OnscreenText(
             text="",
-            pos=(-1.78, 0.94),
-            scale=0.045,
+            pos=(-1.8, 0.9),
+            scale=0.05,
             fg=(1, 1, 1, 1),
             align=TextNode.ALeft,
             mayChange=True
@@ -509,7 +479,6 @@ class JetSim(ShowBase):
         self.accept("t", self.toggle_player_engine)
         self.accept("c", self.cycle_camera_mode)
         self.accept("m", self.fire_missile)
-        self.accept("f9", self.test_missile_collision_logic)
 
     def set_player_pitch_input(self, value):
         if not self.game_over:
@@ -540,9 +509,24 @@ class JetSim(ShowBase):
     # ========================================================
     # Missile
     # ========================================================
+    def enable_missile_effects(self, cinematic=True, slowmo=8.0):
+        from missile_vfx import MissileVFX
+
+        if self.missile_vfx is not None:
+            self.missile_vfx.destroy()
+        self.missile_vfx = MissileVFX(self, cinematic=cinematic, slowmo=slowmo)
+        return self.missile_vfx
+
+    def destroy(self):
+        effects = getattr(self, "missile_vfx", None)
+        if effects is not None:
+            effects.destroy()
+            self.missile_vfx = None
+        super().destroy()
+
     def attach_missile(self):
         try:
-            self.missile = load_gltf(MISSILE_MODEL_PATH)
+            self.missile = self.loader.loadModel(Filename.fromOsSpecific(asset_path(MISSILE_MODEL_PATH)))
         except Exception as e:
             print("Error loading missile model:", e)
             self.missile = None
@@ -569,9 +553,9 @@ class JetSim(ShowBase):
         except Exception:
             pass
 
-        self.missile.setScale(MISSILE_MODEL_SCALE)
+        self.missile.setScale(MISSILE_RELATIVE_SCALE)
         self.missile.setPos(0, 0, 0)
-        self.missile.setHpr(MISSILE_MODEL_ROTATION)
+        self.missile.setHpr(0, 0, 0)
 
     def fire_missile(self):
         if self.game_over:
@@ -582,17 +566,16 @@ class JetSim(ShowBase):
         if self.missile.isHidden():
             return
 
-        launch_pos = self.player.missile_mount_node.getPos(self.render)
-        launch_direction = self.player.get_forward_vector()
+        launch_pos = self.missile.getPos(self.render)
+        launch_hpr = self.missile.getHpr(self.render)
 
-        projectile_root = self.render.attachNewNode("missile_root")
-        projectile_root.setPos(launch_pos)
-        projectile_root.lookAt(launch_pos + launch_direction)
+        projectile = self.loader.loadModel(Filename.fromOsSpecific(asset_path(MISSILE_MODEL_PATH)))
+        projectile.reparentTo(self.render)
+        projectile.setPos(launch_pos)
+        projectile.setHpr(launch_hpr)
 
-        projectile = load_gltf(MISSILE_MODEL_PATH)
-        projectile.reparentTo(projectile_root)
-        projectile.setScale(MISSILE_MODEL_SCALE)
-        projectile.setHpr(MISSILE_MODEL_ROTATION)
+        world_scale = self.player.visual_root.getScale(self.render).x * MISSILE_RELATIVE_SCALE
+        projectile.setScale(world_scale)
 
         try:
             ts_list = projectile.findAllTextureStages()
@@ -613,25 +596,42 @@ class JetSim(ShowBase):
         except Exception:
             pass
 
+        q = Quat()
+        q.setHpr(launch_hpr)
+        launch_direction = q.xform(Vec3(0, 0, 1))
+        if vec_length_sq(launch_direction) < 1e-8:
+            launch_direction = Vec3(0, 0, 1)
+        else:
+            launch_direction.normalize()
+
         projectile_state = {
-            "node": projectile_root,
+            "node": projectile,
             "velocity": launch_direction * MISSILE_LAUNCH_SPEED + self.player.velocity,
             "age": 0.0,
             "spawn_pos": Vec3(launch_pos),
+            "hit_registered": False,
         }
         self.active_missiles.append(projectile_state)
+        if self.missile_vfx is not None:
+            self.missile_vfx.on_launch(projectile_state)
         self.missile.hide()
         print("Missile launched.")
 
-    def test_missile_collision_logic(self):
-        """F9 debug aid: exercise the existing collision path after firing normally."""
-        if self.game_over or not self.active_missiles:
-            print("Collision test requires an active missile; press M first.")
+    def register_missile_hit(self, missile_state):
+        """Register one projectile hit and expose the event for future consumers."""
+        if missile_state.get("hit_registered", False):
             return
 
-        self.enemy.position = self.active_missiles[0]["node"].getPos()
-        self.enemy.sync_graphics()
-        self.update_missiles(0.0)
+        missile_state["hit_registered"] = True
+        self.missile_hit = True
+        self.missile_hit_count += 1
+        self.target_destroyed = True
+        self.enemy.crashed = True
+        self.enemy.crash_message = "MISSILE HIT TARGET"
+        self.enemy.velocity = Vec3(0, 0, 0)
+        self.enemy.roll_rate = self.enemy.pitch_rate = self.enemy.yaw_rate = 0.0
+        self.enemy.turn_rate = 0.0
+        print("MISSILE HIT TARGET")
 
     def update_missiles(self, dt):
         if not self.active_missiles:
@@ -642,34 +642,34 @@ class JetSim(ShowBase):
             node = m["node"]
             m["age"] += dt
             node.setPos(node.getPos() + m["velocity"] * dt)
-            if vec_length_sq(m["velocity"]) > 1e-8:
-                node.lookAt(node.getPos() + m["velocity"])
+            if self.missile_vfx is not None:
+                self.missile_vfx.on_motion(m)
 
             if (node.getPos() - self.enemy.position).length() <= MISSILE_HIT_RADIUS:
-                node.removeNode()
-                self.enemy.crashed = True
-                self.enemy.velocity = Vec3(0, 0, 0)
-                self.enemy.roll_rate = self.enemy.pitch_rate = self.enemy.yaw_rate = 0.0
-                self.game_over = True
-                self.game_over_message = "MISSION SUCCESS: ENEMY DESTROYED"
-                print(self.game_over_message)
+                self.register_missile_hit(m)
+                self._remove_projectile(m, hit=True)
                 continue
 
             if m["age"] > MISSILE_MAX_LIFETIME:
-                node.removeNode()
+                self._remove_projectile(m)
                 continue
 
             if (node.getPos() - m["spawn_pos"]).length() > MISSILE_MAX_RANGE:
-                node.removeNode()
+                self._remove_projectile(m)
                 continue
 
             if node.getZ() < -1000:
-                node.removeNode()
+                self._remove_projectile(m)
                 continue
 
             kept.append(m)
 
         self.active_missiles = kept
+
+    def _remove_projectile(self, state, hit=False):
+        if self.missile_vfx is not None:
+            self.missile_vfx.on_remove(state, hit=hit)
+        state["node"].removeNode()
 
     # ========================================================
     # Physics helpers
@@ -844,8 +844,8 @@ class JetSim(ShowBase):
         e.ai_update_timer -= dt
 
         if e.ai_update_timer <= 0 or (e.ai_waypoint - e.position).length() < ENEMY_WAYPOINT_REACH_DIST:
-            e.ai_update_timer = random.uniform(ENEMY_AI_UPDATE_TIME_MIN, ENEMY_AI_UPDATE_TIME_MAX)
-            waypoint_offset = random_point_in_sphere(ENEMY_PATROL_RADIUS)
+            e.ai_update_timer = self.rng.uniform(ENEMY_AI_UPDATE_TIME_MIN, ENEMY_AI_UPDATE_TIME_MAX)
+            waypoint_offset = random_point_in_sphere(ENEMY_PATROL_RADIUS, self.rng)
             waypoint_offset.z *= 0.60
             e.ai_waypoint = e.ai_patrol_center + waypoint_offset
 
@@ -874,8 +874,8 @@ class JetSim(ShowBase):
             e.target_speed = 160.0
 
         # Gentle variation, not a jump.
-        if random.random() < 0.008:
-            e.target_speed += random.uniform(-10, 10)
+        if self.rng.random() < 0.008:
+            e.target_speed += self.rng.uniform(-10, 10)
 
         e.target_speed = clamp(e.target_speed, ENEMY_MIN_SPEED, ENEMY_MAX_SPEED)
         if e.current_speed < e.target_speed - 5:
@@ -1016,11 +1016,9 @@ CONTROLS:
 
         try:
             if not self.game_over:
-                if not DEBUG_MISSILE_TEST:
-                    self.update_enemy_ai(dt)
+                self.update_enemy_ai(dt)
                 self.update_actor_physics(self.player, dt)
-                if not DEBUG_MISSILE_TEST:
-                    self.update_actor_physics(self.enemy, dt)
+                self.update_actor_physics(self.enemy, dt)
                 self.check_boundary()
 
             self.update_jet_position(self.player)
@@ -1033,6 +1031,8 @@ CONTROLS:
             self.update_missiles(dt)
             self.update_camera()
             self.update_hud()
+            if self.missile_vfx is not None:
+                self.missile_vfx.update_realtime(dt)
 
         except Exception as e:
             print(f"Error in update loop: {e}")
@@ -1049,5 +1049,5 @@ CONTROLS:
 
 
 if __name__ == "__main__":
-    app = JetSim()
+    app = JetSim(enable_missile_vfx=True)
     app.run()
