@@ -1,0 +1,74 @@
+{
+  "schema": 1,
+  "kind": "final",
+  "config": {
+    "variant": "A",
+    "seed": 62001,
+    "total_timesteps": 500000,
+    "device": "cpu",
+    "n_steps": 2048,
+    "batch_size": 64,
+    "learning_rate": 0.0001,
+    "gamma": 0.99,
+    "checkpoint_every": 20000,
+    "max_episode_steps": 2000,
+    "bearing_progress_weight": 0.0,
+    "update_normalization": false,
+    "player_headings": [
+      0,
+      60,
+      120,
+      180,
+      240,
+      300
+    ],
+    "guided_missiles": true,
+    "launch_range_m": 100.0
+  },
+  "source_timesteps": 100352,
+  "num_timesteps": 602112,
+  "actual_additional_timesteps": 501760,
+  "additional_timesteps_since_baseline": 501760,
+  "optimizer_state_entries": 15,
+  "parent_bundle": null,
+  "baseline_hashes": {
+    "models/ppo_ucav_100k_19d_hybrid_fire_randomized_training.zip": "fd2dc4bfd404f0f65bd362043c96d5e595af416ba263f628f7dc66f0b24c884c",
+    "models/ppo_ucav_100k_19d_hybrid_fire_randomized_training_vecnormalize.pkl": "793d0862782bd6c126da53926dcc43159268f904a16a6779144296d0ca05905c"
+  },
+  "source_hashes": {
+    "fighter_jet_env.py": "544965f4b222f070c1af0f46ef0fee7de4087738ce1ad3e1e5348e5b747143e5",
+    "updated_chase_jet_sim_v3.py": "1dcfb295ac75b6bc4739f45b9cef7020fd27b247e6547518cc912f0e4e5e93de",
+    "hybrid_ppo.py": "911a258e78455acd4ee8eb06966936fe781bcbd33cc04e394d06c12390d4a2e9",
+    "projectile_motion.py": "e01bcfcd09ec468ec64335ad71edf2fb5bede404beb309f3e36eb3a3d82fc1e1",
+    "turning_experiment.py": "fac64ac2afb9e54baa68e1cad3843895fe7e5de74bdb30d0697b3ff03def4c1f",
+    "turning_checkpoints.py": "5251678ed0430864718de9d396c884eed057de248ebe172ef32bea4e85952309",
+    "train_turning_ppo.py": "14c3a805c472b0efe8b43cdc4746b346dced54afb49381f39ccde4623327051b"
+  },
+  "python": "3.12.10",
+  "sb3": "2.9.0",
+  "torch": "2.13.0+cpu",
+  "numpy": "2.5.2",
+  "simulation_dt_seconds": 0.05,
+  "guidance_config": {
+    "navigation_gain": 3.0,
+    "boost_acceleration": 120.0,
+    "boost_seconds": 3.0,
+    "coast_deceleration": 0.0,
+    "max_speed": 650.0,
+    "max_lateral_acceleration": 250.0,
+    "max_turn_rate_deg": 120.0,
+    "lifetime": 20.0,
+    "max_distance": 25000.0,
+    "proximity_radius": 50.0,
+    "floor": -1000.0,
+    "integration_dt": 0.01,
+    "seeker_range": null,
+    "seeker_half_angle_deg": null,
+    "lock_loss": "coast"
+  },
+  "continuation": "optimizer-restored fine-tuning; fresh rollout/environment, not exact replay",
+  "hashes": {
+    "candidate.zip": "76446b967ed91611f0ff2e919b7ef256825961ae707b8b8e277a2143fb43b124",
+    "candidate_vecnormalize.pkl": "f120222d6c5dbe8366403fb619d0e48f99959aa5639de145ae4aca62297f51ba"
+  }
+}

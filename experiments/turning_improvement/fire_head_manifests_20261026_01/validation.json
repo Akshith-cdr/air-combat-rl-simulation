@@ -1,0 +1,142 @@
+{
+  "split": "validation",
+  "seed": 172001,
+  "cases": [
+    {
+      "episode_id": "validation-0000-0",
+      "pair_id": 0,
+      "environment_seed": 172001,
+      "policy_seed": 182001,
+      "scenario": {
+        "family": "ahead",
+        "player_heading": 300.0,
+        "distance": 2827.479944023114,
+        "bearing": 9.564161896495246,
+        "player_speed": 256.9661211219095,
+        "enemy_speed": 156.59452720148946,
+        "relative_enemy_heading": -119.89637213327282,
+        "altitude": 1839.9836741572026,
+        "delta_altitude": 100.60339001547572
+      }
+    },
+    {
+      "episode_id": "validation-0000-1",
+      "pair_id": 0,
+      "environment_seed": 172002,
+      "policy_seed": 182002,
+      "scenario": {
+        "family": "ahead",
+        "player_heading": 300.0,
+        "distance": 2827.479944023114,
+        "bearing": -9.564161896495246,
+        "player_speed": 256.9661211219095,
+        "enemy_speed": 156.59452720148946,
+        "relative_enemy_heading": 119.89637213327282,
+        "altitude": 1839.9836741572026,
+        "delta_altitude": 100.60339001547572
+      }
+    },
+    {
+      "episode_id": "validation-0001-0",
+      "pair_id": 1,
+      "environment_seed": 172003,
+      "policy_seed": 182003,
+      "scenario": {
+        "family": "left",
+        "player_heading": 0.0,
+        "distance": 4611.631057315897,
+        "bearing": -66.7500420614767,
+        "player_speed": 166.85363595787942,
+        "enemy_speed": 219.13312974524592,
+        "relative_enemy_heading": 129.74571762545264,
+        "altitude": 1126.838676568481,
+        "delta_altitude": -342.29688685747595
+      }
+    },
+    {
+      "episode_id": "validation-0001-1",
+      "pair_id": 1,
+      "environment_seed": 172004,
+      "policy_seed": 182004,
+      "scenario": {
+        "family": "right",
+        "player_heading": 0.0,
+        "distance": 4611.631057315897,
+        "bearing": 66.7500420614767,
+        "player_speed": 166.85363595787942,
+        "enemy_speed": 219.13312974524592,
+        "relative_enemy_heading": -129.74571762545264,
+        "altitude": 1126.838676568481,
+        "delta_altitude": -342.29688685747595
+      }
+    },
+    {
+      "episode_id": "validation-0002-0",
+      "pair_id": 2,
+      "environment_seed": 172005,
+      "policy_seed": 182005,
+      "scenario": {
+        "family": "right",
+        "player_heading": 180.0,
+        "distance": 3729.56267845697,
+        "bearing": 78.29122097418997,
+        "player_speed": 251.45591483084223,
+        "enemy_speed": 148.46234857130608,
+        "relative_enemy_heading": 20.635452647383687,
+        "altitude": 1952.589847743042,
+        "delta_altitude": 43.48366098625502
+      }
+    },
+    {
+      "episode_id": "validation-0002-1",
+      "pair_id": 2,
+      "environment_seed": 172006,
+      "policy_seed": 182006,
+      "scenario": {
+        "family": "left",
+        "player_heading": 180.0,
+        "distance": 3729.56267845697,
+        "bearing": -78.29122097418997,
+        "player_speed": 251.45591483084223,
+        "enemy_speed": 148.46234857130608,
+        "relative_enemy_heading": -20.635452647383687,
+        "altitude": 1952.589847743042,
+        "delta_altitude": 43.48366098625502
+      }
+    },
+    {
+      "episode_id": "validation-0003-0",
+      "pair_id": 3,
+      "environment_seed": 172007,
+      "policy_seed": 182007,
+      "scenario": {
+        "family": "behind_left",
+        "player_heading": 300.0,
+        "distance": 2180.514815478984,
+        "bearing": -107.2014808497317,
+        "player_speed": 168.70889151003053,
+        "enemy_speed": 205.90396460972485,
+        "relative_enemy_heading": -137.6953672536025,
+        "altitude": 1416.8940618926474,
+        "delta_altitude": 180.4050633817452
+      }
+    },
+    {
+      "episode_id": "validation-0003-1",
+      "pair_id": 3,
+      "environment_seed": 172008,
+      "policy_seed": 182008,
+      "scenario": {
+        "family": "behind_right",
+        "player_heading": 300.0,
+        "distance": 2180.514815478984,
+        "bearing": 107.2014808497317,
+        "player_speed": 168.70889151003053,
+        "enemy_speed": 205.90396460972485,
+        "relative_enemy_heading": 137.6953672536025,
+        "altitude": 1416.8940618926474,
+        "delta_altitude": 180.4050633817452
+      }
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "variant": "A",
+  "seed": 62001,
+  "total_timesteps": 500000,
+  "device": "cpu",
+  "n_steps": 2048,
+  "batch_size": 64,
+  "learning_rate": 0.0001,
+  "gamma": 0.99,
+  "checkpoint_every": 20000,
+  "max_episode_steps": 2000,
+  "bearing_progress_weight": 0.0,
+  "update_normalization": false,
+  "player_headings": [0, 60, 120, 180, 240, 300],
+  "guided_missiles": true,
+  "launch_range_m": 100.0
+}

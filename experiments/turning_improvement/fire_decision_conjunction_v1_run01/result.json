@@ -1,0 +1,323 @@
+{
+  "PPO_updates": 0,
+  "code_sha256": {
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\experimental_fire_turn\\checkpoint.py": "9c3dbd53627439dde8645059f34b729e41f7ace8bb4c8851c86ec038eef601f9",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\experimental_fire_turn\\common.py": "dda948fd39a771ec5fa689e8e85d4f2af272021fa1edd663eccc4154a4027e23",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\experimental_fire_turn\\data.py": "2073074d9838e3194d61c7eef6f10ddf586a8346c6f6ff91c90658da0c31e513",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\experimental_fire_turn\\fresh_collection\\planning.py": "4754e2cbbc1f8cd55a2a162d7e66c185628795a32f2949ae2a93a6c2c586e432",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\experimental_fire_turn\\losses.py": "03ab36029af1a7960bdf1d6f2eadc7656f0bd6d1f1ab6f910547a8db54c4d282",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\experimental_fire_turn\\v2_training\\data.py": "9d81ccb033a66616467e991846c302c0dcf8fcc69e563c42c7ede462d5ccd76f",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\experimental_fire_turn\\v2_training\\runner.py": "8c62eba442ceb289abf91be951705bf448cc2743adf40f2837c12186663ac263",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\turning_improvement\\fire_decision_conjunction_v1_20261027_01\\metrics.py": "436ebba9e9eff299a39058cc8634a82026bffad6818aea2e4506cb588cbc6c52",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\turning_improvement\\fire_decision_conjunction_v1_20261027_01\\model.py": "a0c54ea7db4249b0b3b26256d3e2ba66b2777054538f529c5cd612605b340950",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\turning_improvement\\fire_decision_conjunction_v1_20261027_01\\run.py": "65ee0e0bc2b337b99969c70fdbdf836328c940a24e7712472674b66d8f84d88f",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\turning_improvement\\fire_head_margin_frontier_20261027_01\\frontier.py": "a1dfbc86ffaa6d4ee4c8149763e7294ef836baedd6341678bbcdb2902e8b8c68",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\turning_improvement\\fire_head_matched_adapter_20261027_01\\adapter.py": "ed3aa43bc808f32351981f3d1e31978f2c0fd90710a720855c92c8f9f01b0832",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\turning_improvement\\fire_head_matched_adapter_20261027_01\\data.py": "79b99dd726b719c6e8711f943cbd870672507c1745b3b2e01665246d5be67274",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\turning_improvement\\fire_head_matched_adapter_20261027_01\\protected_before.json": "59163137d8e9fed89d17a66881ab1197928e4c6f09ea2c5a0eb4d6238a4c25fd",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\turning_improvement\\fire_head_provenance_loader_v1_20261027_01\\entrypoint.py": "b1751706c9def88e82dcc578755bf4034e6430f823707247997c76f18d5064d1",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\turning_improvement\\fire_head_provenance_loader_v1_20261027_01\\loader.py": "64359b2cf75065deb198ad41a7c1e15b367cfc817d8e4cd8e6167bfa4cbc8d65",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\turning_improvement\\fire_head_window_objective_20261027_01\\objective.py": "457135142f4a78bc83c9c1d7e45388b739d3d9913d127549561fd4c01ea93e43",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\turning_improvement\\fire_head_window_objective_20261027_01\\protocol.json": "d76ddc92516bb105643e327fcd9b69a22c6d50b1bb32184720cf73244e8d6a7f",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\train_fire_head_probe.py": "ddea7e5cae3c4d10c2e1552652f790dfcde4b8de5c12194738cb75ba140c6a12"
+  },
+  "combat_performance_established": false,
+  "environment_steps": 0,
+  "fit": {
+    "actionable_rows": 12508,
+    "audit_excluded": 57,
+    "fit_passes": 1,
+    "negatives": 12324,
+    "optimizer_updates": 0,
+    "positives": 184,
+    "training_identities_sha256": "5a807cb60ef78f7cac5863b5b8e3f2e14c3eed0a1c7886f4b1efe9e5c17ba16e"
+  },
+  "input_sha256": {
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\experimental_fire_turn\\__init__.py": "669899d93dbaa0bed7fb3ca3fe8805effc7ee6889de03b4c8c191c68decd8f5f",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\experimental_fire_turn\\checkpoint.py": "9c3dbd53627439dde8645059f34b729e41f7ace8bb4c8851c86ec038eef601f9",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\experimental_fire_turn\\collect.py": "80ad913ac4d15addc7ea678225fbe36539fe14da3699b30e19569f07646a7f82",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\experimental_fire_turn\\common.py": "dda948fd39a771ec5fa689e8e85d4f2af272021fa1edd663eccc4154a4027e23",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\experimental_fire_turn\\data.py": "2073074d9838e3194d61c7eef6f10ddf586a8346c6f6ff91c90658da0c31e513",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\experimental_fire_turn\\extension\\__init__.py": "33a325d3cbe8364f8fa45214e5d064d0d46c27fa0bca45956a34725b9e3fa114",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\experimental_fire_turn\\extension\\__main__.py": "664546e37a68e77d4653c6334fade44d539bf5ff655799e430fc700387566ce3",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\experimental_fire_turn\\losses.py": "03ab36029af1a7960bdf1d6f2eadc7656f0bd6d1f1ab6f910547a8db54c4d282",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\experimental_fire_turn\\prepare.py": "191aa06299348b86d1dc6bdc3176991126824f70731fe12a1b98c8bd876ee3ed",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\experimental_fire_turn\\probe.py": "fe7b78774db9f798621b9c31c4a3f84148fafb272a7c74aa9d3a9ae8e4a91d03",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\experimental_fire_turn\\validate.py": "9e03418f51ea159a3bc7f6b304a522a7038a16b1a7cd1423fe78374763cb9ad7",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\turning_improvement\\A_seed62001_run01\\final\\bundle.json": "2bc5a5860fb1fc13bddefeb6129a92b67beafff123d420656397f1dc171de0c2",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\turning_improvement\\A_seed62001_run01\\final\\candidate.zip": "76446b967ed91611f0ff2e919b7ef256825961ae707b8b8e277a2143fb43b124",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\turning_improvement\\A_seed62001_run01\\final\\candidate_vecnormalize.pkl": "f120222d6c5dbe8366403fb619d0e48f99959aa5639de145ae4aca62297f51ba",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\turning_improvement\\fire_head_dataset_20261026_01\\dataset.json": "69565425f9063a7b9407cf9dd256a7d14ac386b11b79804de1a61395c0fdc86a",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\turning_improvement\\fire_head_dataset_20261026_01\\rows.jsonl": "77c4226a7be25d513cc2a1433b209ce3aaf02da9d2d751765e443b2449b4082f",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\turning_improvement\\fire_head_ext_dataset_20261026_02\\dataset.json": "69303f686f52f8f0e8f803ad3ff61a66ce4d6509e9f57103395483c8407e9343",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\turning_improvement\\fire_head_ext_dataset_20261026_02\\rows.jsonl": "40c158bde190c9c741f3af3dd766eabdda4adcfcb53ce9c3c366960ffe3421d5",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\turning_improvement\\fire_head_ext_manifests_20261026_02\\index.json": "83b9b725a72501811b2bb33a938a12c2530a939cbcbe381a5fe478208ff6002e",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\turning_improvement\\fire_head_ext_manifests_20261026_02\\training.json": "1405dc9422d5918d4065f0ad992a576d02a870ecd06a6000d687f79cf1868e23",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\turning_improvement\\fire_head_manifests_20261026_01\\index.json": "05e9e6b7c238d5780728ca7c72b6ec45d8f8c44c9b030dea119286992a85e2fe",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\turning_improvement\\fire_head_manifests_20261026_01\\training.json": "559d911cb1728cd5b39239038cbfeca0efb1c96f81f0e022773f0f1609a48fda",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\turning_improvement\\fire_head_manifests_20261026_01\\validation.json": "d56fbb6413580e8aafdee35b6163089a31257a4aacafe335bca24913216296d5",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\turning_improvement\\fire_head_merged_dataset_20261026_02\\dataset.json": "b37e1d09ede304e17a1814c8209cb0550237ad882b2b2978b61b372673b95ee5",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\turning_improvement\\fire_head_merged_dataset_20261026_02\\rows.jsonl": "3a10dc17dec0c97e4e6a4f8f0e94b8629d8cdd74fd62b1e5fa2a6cb93f91e593",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\fighter_jet_env.py": "544965f4b222f070c1af0f46ef0fee7de4087738ce1ad3e1e5348e5b747143e5",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\hybrid_ppo.py": "911a258e78455acd4ee8eb06966936fe781bcbd33cc04e394d06c12390d4a2e9",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\projectile_motion.py": "e01bcfcd09ec468ec64335ad71edf2fb5bede404beb309f3e36eb3a3d82fc1e1",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\turning_experiment.py": "fac64ac2afb9e54baa68e1cad3843895fe7e5de74bdb30d0697b3ff03def4c1f",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\turning_telemetry.py": "164c3de57f5fdc915120b786f5cb7071fcc5d35be25e8e2a43248155cf8c9661",
+    "A:\\Additional Project\\Fighter_Jet_RL_Project\\updated_chase_jet_sim_v3.py": "1dcfb295ac75b6bc4739f45b9cef7020fd27b247e6547518cc912f0e4e5e93de"
+  },
+  "model_parameters": {
+    "alignment_lower": 0.6458390355110168,
+    "alignment_scale": 2.87970507144928,
+    "decision_threshold": 0.5,
+    "feature_indices": [
+      10,
+      11
+    ],
+    "input_dimension": 19,
+    "input_space": "normalized_observation",
+    "range_scale": 2.9546645879745483,
+    "range_upper": -0.7615752220153809,
+    "schema": "direct-observation-conjunction-v1"
+  },
+  "model_schema": "direct-observation-conjunction-v1",
+  "optimizer_updates": 0,
+  "qualified": true,
+  "saved_model": "qualified_model.json",
+  "status": "fit_completed",
+  "training": {
+    "actionable_rows": 12508,
+    "audit_only_requests": 48,
+    "audit_only_rows": 57,
+    "eligible_bce": 0.6895959250011506,
+    "eligible_probability_quantiles": {
+      "max": 0.505308645516859,
+      "median": 0.5015227365064712,
+      "min": 0.5,
+      "p10": 0.5002067456758527,
+      "p90": 0.5035897759005925
+    },
+    "eligible_rows": 184,
+    "eligible_step_recall": 1.0,
+    "eligible_window_recall": 1.0,
+    "eligible_windows": 20,
+    "eligible_windows_with_request": 20,
+    "false_negative": 0,
+    "false_positive": 0,
+    "false_request_windows": 0,
+    "ineligible_bce": 0.5506788075780187,
+    "ineligible_probability_quantiles": {
+      "max": 0.4999842498784524,
+      "median": 0.44256581330210015,
+      "min": 0.27343913386163593,
+      "p10": 0.3055063023369027,
+      "p90": 0.4881361758997575
+    },
+    "ineligible_rows": 12324,
+    "ineligible_step_false_positive_rate": 0.0,
+    "per_episode": {
+      "training-0000-0": {
+        "eligible_windows": 1,
+        "false_request_windows": 0,
+        "hit_windows": 1
+      },
+      "training-0000-1": {
+        "eligible_windows": 1,
+        "false_request_windows": 0,
+        "hit_windows": 1
+      },
+      "training-0001-0": {
+        "eligible_windows": 3,
+        "false_request_windows": 0,
+        "hit_windows": 3
+      },
+      "training-0001-1": {
+        "eligible_windows": 1,
+        "false_request_windows": 0,
+        "hit_windows": 1
+      },
+      "training-0002-0": {
+        "eligible_windows": 2,
+        "false_request_windows": 0,
+        "hit_windows": 2
+      },
+      "training-0002-1": {
+        "eligible_windows": 1,
+        "false_request_windows": 0,
+        "hit_windows": 1
+      },
+      "training-0003-0": {
+        "eligible_windows": 1,
+        "false_request_windows": 0,
+        "hit_windows": 1
+      },
+      "training-0003-1": {
+        "eligible_windows": 1,
+        "false_request_windows": 0,
+        "hit_windows": 1
+      },
+      "training-0004-0": {
+        "eligible_windows": 2,
+        "false_request_windows": 0,
+        "hit_windows": 2
+      },
+      "training-0004-1": {
+        "eligible_windows": 1,
+        "false_request_windows": 0,
+        "hit_windows": 1
+      },
+      "training-0005-0": {
+        "eligible_windows": 1,
+        "false_request_windows": 0,
+        "hit_windows": 1
+      },
+      "training-0005-1": {
+        "eligible_windows": 2,
+        "false_request_windows": 0,
+        "hit_windows": 2
+      },
+      "training-ext-360001-0000-0": {
+        "eligible_windows": 2,
+        "false_request_windows": 0,
+        "hit_windows": 2
+      },
+      "training-ext-360001-0000-1": {
+        "eligible_windows": 1,
+        "false_request_windows": 0,
+        "hit_windows": 1
+      }
+    },
+    "precision": 1.0,
+    "probability_quantiles": {
+      "max": 0.505308645516859,
+      "median": 0.4435071015822124,
+      "min": 0.27343913386163593,
+      "p10": 0.30605146899117797,
+      "p90": 0.4894159861047409
+    },
+    "qualifies": true,
+    "score_separation": {
+      "eligible_logit": {
+        "max": 0.021235380024056786,
+        "median": 0.0060909648749392946,
+        "min": 0.0,
+        "p10": 0.0008269827511810019,
+        "p90": 0.014359350355603836
+      },
+      "ineligible_logit": {
+        "max": -6.300048621124517e-05,
+        "median": -0.23075526160635468,
+        "min": -0.9772432076579542,
+        "p10": -0.821212679686565,
+        "p90": -0.04746420521366441
+      },
+      "median_logit_gap": 0.23684622648129397,
+      "worst_logit_gap": 6.300048621124517e-05
+    },
+    "true_negative": 12324,
+    "true_positive": 184,
+    "unweighted_bce": 0.5527223596731463
+  },
+  "validation": {
+    "actionable_rows": 5382,
+    "audit_only_requests": 26,
+    "audit_only_rows": 29,
+    "eligible_bce": 0.6899434015310346,
+    "eligible_probability_quantiles": {
+      "max": 0.5044902777678182,
+      "median": 0.5012865067291888,
+      "min": 0.5000358122359767,
+      "p10": 0.5001903111857368,
+      "p90": 0.5037066623636035
+    },
+    "eligible_rows": 72,
+    "eligible_step_recall": 1.0,
+    "eligible_window_recall": 1.0,
+    "eligible_windows": 11,
+    "eligible_windows_with_request": 11,
+    "false_negative": 0,
+    "false_positive": 0,
+    "false_request_windows": 0,
+    "ineligible_bce": 0.537792425476046,
+    "ineligible_probability_quantiles": {
+      "max": 0.499979993361458,
+      "median": 0.43531774254218936,
+      "min": 0.25598306419542793,
+      "p10": 0.2986077913040369,
+      "p90": 0.4887420803467878
+    },
+    "ineligible_rows": 5310,
+    "ineligible_step_false_positive_rate": 0.0,
+    "per_episode": {
+      "validation-0000-0": {
+        "eligible_windows": 1,
+        "false_request_windows": 0,
+        "hit_windows": 1
+      },
+      "validation-0000-1": {
+        "eligible_windows": 1,
+        "false_request_windows": 0,
+        "hit_windows": 1
+      },
+      "validation-0001-0": {
+        "eligible_windows": 1,
+        "false_request_windows": 0,
+        "hit_windows": 1
+      },
+      "validation-0001-1": {
+        "eligible_windows": 2,
+        "false_request_windows": 0,
+        "hit_windows": 2
+      },
+      "validation-0002-0": {
+        "eligible_windows": 2,
+        "false_request_windows": 0,
+        "hit_windows": 2
+      },
+      "validation-0002-1": {
+        "eligible_windows": 2,
+        "false_request_windows": 0,
+        "hit_windows": 2
+      },
+      "validation-0003-0": {
+        "eligible_windows": 1,
+        "false_request_windows": 0,
+        "hit_windows": 1
+      },
+      "validation-0003-1": {
+        "eligible_windows": 1,
+        "false_request_windows": 0,
+        "hit_windows": 1
+      }
+    },
+    "precision": 1.0,
+    "probability_quantiles": {
+      "max": 0.5044902777678182,
+      "median": 0.4365320416440375,
+      "min": 0.25598306419542793,
+      "p10": 0.2989313626005839,
+      "p90": 0.48990793494229123
+    },
+    "qualifies": true,
+    "score_separation": {
+      "eligible_logit": {
+        "max": 0.017961593951436892,
+        "median": 0.0051460382740360164,
+        "min": 0.00014324894415179378,
+        "p10": 0.0007612447798660533,
+        "p90": 0.014826921344367031
+      },
+      "ineligible_logit": {
+        "max": -8.002655421069792e-05,
+        "median": -0.2601869936740735,
+        "min": -1.0669525109476206,
+        "p10": -0.8539362554504095,
+        "p90": -0.045039290728123356
+      },
+      "median_logit_gap": 0.26533303194810953,
+      "worst_logit_gap": 0.0002232754983624917
+    },
+    "true_negative": 5310,
+    "true_positive": 72,
+    "unweighted_bce": 0.5398278900386545
+  }
+}

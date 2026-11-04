@@ -1,0 +1,273 @@
+{
+  "hashes": {
+    "candidate.zip": "d29ec44c3ef0e2761c672328fc78d92e7935821aafec0f9074753d3df804ec68",
+    "candidate_vecnormalize.pkl": "f120222d6c5dbe8366403fb619d0e48f99959aa5639de145ae4aca62297f51ba"
+  },
+  "kind": "final",
+  "optimizer": "fresh flight Adam at initialization; restored on resume",
+  "schema": "flight-ppo-bundle-v1",
+  "source_steps": 602112,
+  "state": {
+    "config": {
+      "adam_epsilon": 1e-05,
+      "batch_size": 64,
+      "bearing_progress_weight": 0.2,
+      "checkpoint_every": 65536,
+      "clip_range": 0.2,
+      "common_horizon_steps": 500,
+      "development": {
+        "environment_seed": 84011,
+        "geometry_seed": 83011,
+        "pairs": 5,
+        "policy_seed": 85011
+      },
+      "device": "cpu",
+      "ent_coef": 0.0,
+      "final": {
+        "environment_seed": 94011,
+        "geometry_seed": 93011,
+        "pairs": 10,
+        "policy_seed": 95011
+      },
+      "gae_lambda": 0.98,
+      "gamma": 0.999,
+      "learning_rate": 0.0001,
+      "max_episode_steps": 2000,
+      "max_grad_norm": 0.5,
+      "n_envs": 1,
+      "n_epochs": 10,
+      "n_steps": 2048,
+      "schema": "fixed-conjunction-flight-ppo-v1",
+      "seed": 63011,
+      "target_kl": 0.02,
+      "total_timesteps": 2097152,
+      "validation_every": 131072,
+      "vf_coef": 0.5
+    },
+    "curriculum": {
+      "deck": [
+        [
+          "ahead",
+          120
+        ],
+        [
+          "right",
+          180
+        ],
+        [
+          "right",
+          0
+        ],
+        [
+          "behind_left",
+          120
+        ],
+        [
+          "ahead",
+          180
+        ],
+        [
+          "ahead",
+          0
+        ],
+        [
+          "right",
+          240
+        ]
+      ],
+      "pair_id": 1498,
+      "pending": null,
+      "rng_state": {
+        "bit_generator": "PCG64",
+        "has_uint32": 0,
+        "state": {
+          "inc": 66923281573881292257601412289466985833,
+          "state": 150892424455187584972628967878516762876
+        },
+        "uinteger": 1811805398
+      },
+      "stage": 3
+    },
+    "development": [
+      {
+        "bundle": "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\flight_policy\\flight_v2_seed63011_run03\\validation_inputs\\step_000000131072",
+        "result": {
+          "path": "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\flight_policy\\flight_v2_seed63011_run03\\development\\step_000000131072\\result.json",
+          "sha256": "b4281238c61043d04321c0a749adac55b27d2b59cd3f6031e545c0b6668bbf36"
+        },
+        "step": 131072
+      },
+      {
+        "bundle": "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\flight_policy\\flight_v2_seed63011_run03\\validation_inputs\\step_000000262144",
+        "result": {
+          "path": "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\flight_policy\\flight_v2_seed63011_run03\\development\\step_000000262144\\result.json",
+          "sha256": "db28c04afec4d1ea4ca5436413e8d68fbfc6f114b751388fc670ff04c9127119"
+        },
+        "step": 262144
+      },
+      {
+        "bundle": "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\flight_policy\\flight_v2_seed63011_run03\\validation_inputs\\step_000000393216",
+        "result": {
+          "path": "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\flight_policy\\flight_v2_seed63011_run03\\development\\step_000000393216\\result.json",
+          "sha256": "0db02a4445fb6b7616eeff0c535e24f204af32974527d06855592afa17cfece4"
+        },
+        "step": 393216
+      },
+      {
+        "bundle": "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\flight_policy\\flight_v2_seed63011_run03\\validation_inputs\\step_000000524288",
+        "result": {
+          "path": "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\flight_policy\\flight_v2_seed63011_run03\\development\\step_000000524288\\result.json",
+          "sha256": "d72101b5fe4808372705cbe79de03128267cd16680eceb320923b70a407a3cd1"
+        },
+        "step": 524288
+      },
+      {
+        "bundle": "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\flight_policy\\flight_v2_seed63011_run03\\validation_inputs\\step_000000655360",
+        "result": {
+          "path": "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\flight_policy\\flight_v2_seed63011_run03\\development\\step_000000655360\\result.json",
+          "sha256": "8705cc8a5beb58801d3c5b91d101d879a379429babacb48d8142cbafa20fed58"
+        },
+        "step": 655360
+      },
+      {
+        "bundle": "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\flight_policy\\flight_v2_seed63011_run03\\validation_inputs\\step_000000786432",
+        "result": {
+          "path": "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\flight_policy\\flight_v2_seed63011_run03\\development\\step_000000786432\\result.json",
+          "sha256": "f310607de7565755e9676277709e8f5e0bb0c14f8485e787cb63ab4f9e876ddc"
+        },
+        "step": 786432
+      },
+      {
+        "bundle": "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\flight_policy\\flight_v2_seed63011_run03\\validation_inputs\\step_000000917504",
+        "result": {
+          "path": "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\flight_policy\\flight_v2_seed63011_run03\\development\\step_000000917504\\result.json",
+          "sha256": "af411c290613bba62df7c604f176cf4b42d9ccf1251fdcf09c5934fac5975ee0"
+        },
+        "step": 917504
+      },
+      {
+        "bundle": "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\flight_policy\\flight_v2_seed63011_run03\\validation_inputs\\step_000001048576",
+        "result": {
+          "path": "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\flight_policy\\flight_v2_seed63011_run03\\development\\step_000001048576\\result.json",
+          "sha256": "82129f5646cc27c2e115d3448774d1e4cede1cf86e9342c6729cf877d3128915"
+        },
+        "step": 1048576
+      },
+      {
+        "bundle": "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\flight_policy\\flight_v2_seed63011_run03\\validation_inputs\\step_000001179648",
+        "result": {
+          "path": "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\flight_policy\\flight_v2_seed63011_run03\\development\\step_000001179648\\result.json",
+          "sha256": "2cba7e95e081dc944cea1ff1d6e6fc98bbe8fbbc0df3a48ba824f671f940fe81"
+        },
+        "step": 1179648
+      },
+      {
+        "bundle": "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\flight_policy\\flight_v2_seed63011_run03\\validation_inputs\\step_000001310720",
+        "result": {
+          "path": "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\flight_policy\\flight_v2_seed63011_run03\\development\\step_000001310720\\result.json",
+          "sha256": "92428715814304a6c56caec9b63ffdd6406172968e021c97108b72a4bf722fb8"
+        },
+        "step": 1310720
+      },
+      {
+        "bundle": "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\flight_policy\\flight_v2_seed63011_run03\\validation_inputs\\step_000001441792",
+        "result": {
+          "path": "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\flight_policy\\flight_v2_seed63011_run03\\development\\step_000001441792\\result.json",
+          "sha256": "c0117e4887dfe9dad2309c357a439eccf236fcd638b66eacbe283f7f6ae38322"
+        },
+        "step": 1441792
+      },
+      {
+        "bundle": "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\flight_policy\\flight_v2_seed63011_run03\\validation_inputs\\step_000001572864",
+        "result": {
+          "path": "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\flight_policy\\flight_v2_seed63011_run03\\development\\step_000001572864\\result.json",
+          "sha256": "64f9a2512852a27f9fe8254935727c019383881dd2be88ab02d1161b3612cd41"
+        },
+        "step": 1572864
+      },
+      {
+        "bundle": "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\flight_policy\\flight_v2_seed63011_run03\\validation_inputs\\step_000001703936",
+        "result": {
+          "path": "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\flight_policy\\flight_v2_seed63011_run03\\development\\step_000001703936\\result.json",
+          "sha256": "674822f20ad6fdc01d37479ecd453abb0c4e83205856c8bbe0615f3b06f05be8"
+        },
+        "step": 1703936
+      },
+      {
+        "bundle": "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\flight_policy\\flight_v2_seed63011_run03\\validation_inputs\\step_000001835008",
+        "result": {
+          "path": "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\flight_policy\\flight_v2_seed63011_run03\\development\\step_000001835008\\result.json",
+          "sha256": "51d3eb27022a37e43b9d88bd88fc6473b8ae338c902b4ade06cd53913085b9e9"
+        },
+        "step": 1835008
+      },
+      {
+        "bundle": "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\flight_policy\\flight_v2_seed63011_run03\\validation_inputs\\step_000001966080",
+        "result": {
+          "path": "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\flight_policy\\flight_v2_seed63011_run03\\development\\step_000001966080\\result.json",
+          "sha256": "7d41bb9f43f2d22e80dfbfc7d7ae48b4d2818f60d68069f68fdfd9d690e00f33"
+        },
+        "step": 1966080
+      },
+      {
+        "bundle": "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\flight_policy\\flight_v2_seed63011_run03\\validation_inputs\\step_000002097152",
+        "result": {
+          "path": "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\flight_policy\\flight_v2_seed63011_run03\\development\\step_000002097152\\result.json",
+          "sha256": "d0e60d84ba33d677e617d323d9a47e43a6c36dc2d7421d24b1cbb82bc30daaee"
+        },
+        "step": 2097152
+      }
+    ],
+    "fire_tensor_hash": "cfcc8a27810faa0b7720d30ab24adfa0b783e250b67a30d5f4f800f39a9b62a1",
+    "normalization_hash": "b0d87b731db77af701ae3a90b90adb9a799f9039d49b34cb8dbde7d1afc44764",
+    "pins": {
+      "configs/flight_ppo_v1_seed63011.json": "66893f974af82265615fd0a92cd759e9f587256ac924c65830d46eebb238d2a8",
+      "configs/flight_ppo_v2_seed63011.json": "d7c19bbc3a80edbdec06c4f1f6cb57e4366a81791eaad5c2e952b5da7819df0e",
+      "evaluate_turning_ppo.py": "542e768cafd3e4a56452b246779722d652d01b760b7e81a863566e828d02fdf2",
+      "experimental_fire_turn/checkpoint.py": "9c3dbd53627439dde8645059f34b729e41f7ace8bb4c8851c86ec038eef601f9",
+      "experimental_fire_turn/common.py": "dda948fd39a771ec5fa689e8e85d4f2af272021fa1edd663eccc4154a4027e23",
+      "experimental_fire_turn/losses.py": "03ab36029af1a7960bdf1d6f2eadc7656f0bd6d1f1ab6f910547a8db54c4d282",
+      "experimental_flight_ppo_v1.py": "b20f53a680f2c6ef3b8028aebcbe36459e76a2cbf77a29ff138f249c5d8cd20b",
+      "experiments/turning_improvement/A_seed62001_run01/final/bundle.json": "2bc5a5860fb1fc13bddefeb6129a92b67beafff123d420656397f1dc171de0c2",
+      "experiments/turning_improvement/A_seed62001_run01/final/candidate.zip": "76446b967ed91611f0ff2e919b7ef256825961ae707b8b8e277a2143fb43b124",
+      "experiments/turning_improvement/A_seed62001_run01/final/candidate_vecnormalize.pkl": "f120222d6c5dbe8366403fb619d0e48f99959aa5639de145ae4aca62297f51ba",
+      "experiments/turning_improvement/fire_decision_conjunction_v1_20261027_01/metrics.py": "436ebba9e9eff299a39058cc8634a82026bffad6818aea2e4506cb588cbc6c52",
+      "experiments/turning_improvement/fire_decision_conjunction_v1_20261027_01/model.py": "a0c54ea7db4249b0b3b26256d3e2ba66b2777054538f529c5cd612605b340950",
+      "experiments/turning_improvement/fire_decision_conjunction_v1_20261027_01/run.py": "65ee0e0bc2b337b99969c70fdbdf836328c940a24e7712472674b66d8f84d88f",
+      "experiments/turning_improvement/fire_decision_conjunction_v1_run01/integrity.json": "fe69710d971c7ff87f8c5f84af2ff221baef8ccbbab0cf758d30baa98b8b947a",
+      "experiments/turning_improvement/fire_decision_conjunction_v1_run01/plan.json": "8c30f1d2c1c35996ed4c2f2ce672c9f24ca47c1bb7f22072703b3106bdee0746",
+      "experiments/turning_improvement/fire_decision_conjunction_v1_run01/qualified_model.json": "525b58bec4761a0d3c1c2adb76c6557c47a8aa67c80433d4158c7591169ec23d",
+      "experiments/turning_improvement/fire_decision_conjunction_v1_run01/result.json": "03edec108a7b2e008f7b4b45b0059a69a186900809966e0be8313b95a4b88c02",
+      "experiments/turning_improvement/fire_head_manifests_20261026_01/validation.json": "d56fbb6413580e8aafdee35b6163089a31257a4aacafe335bca24913216296d5",
+      "fighter_jet_env.py": "544965f4b222f070c1af0f46ef0fee7de4087738ce1ad3e1e5348e5b747143e5",
+      "hybrid_ppo.py": "911a258e78455acd4ee8eb06966936fe781bcbd33cc04e394d06c12390d4a2e9",
+      "models/ppo_ucav_100k_19d_hybrid_fire_randomized_training.zip": "fd2dc4bfd404f0f65bd362043c96d5e595af416ba263f628f7dc66f0b24c884c",
+      "models/ppo_ucav_100k_19d_hybrid_fire_randomized_training_vecnormalize.pkl": "793d0862782bd6c126da53926dcc43159268f904a16a6779144296d0ca05905c",
+      "projectile_motion.py": "e01bcfcd09ec468ec64335ad71edf2fb5bede404beb309f3e36eb3a3d82fc1e1",
+      "radar.py": "ec388148ef867d928cb93999642aa7dd0e5f8522a821b50db33117d28b93b5fa",
+      "train_flight_ppo.py": "9125f31ace73cda42822ab97e75e29200a40260bfd8cbac90bb6024212ffa030",
+      "train_turning_ppo.py": "14c3a805c472b0efe8b43cdc4746b346dced54afb49381f39ccde4623327051b",
+      "turning_checkpoints.py": "5251678ed0430864718de9d396c884eed057de248ebe172ef32bea4e85952309",
+      "turning_experiment.py": "fac64ac2afb9e54baa68e1cad3843895fe7e5de74bdb30d0697b3ff03def4c1f",
+      "turning_telemetry.py": "164c3de57f5fdc915120b786f5cb7071fcc5d35be25e8e2a43248155cf8c9661",
+      "updated_chase_jet_sim_v3.py": "1dcfb295ac75b6bc4739f45b9cef7020fd27b247e6547518cc912f0e4e5e93de"
+    },
+    "protocol_sha256": "5129c8613c088e87628660cc2442c4e78f3f664f3a4a3d98800ce10ea0412251",
+    "reference_bundle": "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\flight_policy\\flight_v2_seed63011_run03\\initial",
+    "reference_result": {
+      "path": "A:\\Additional Project\\Fighter_Jet_RL_Project\\experiments\\flight_policy\\flight_v2_seed63011_run03\\development\\step_000000000000\\result.json",
+      "sha256": "ac0a7e4f9292114951850e764db124a0e8660f94699d85ca2ee52b6e5aec5914"
+    },
+    "segment": 0,
+    "selected": null,
+    "selected_source": null,
+    "steps": 2097152,
+    "versions": {
+      "numpy": "2.5.2",
+      "python": "3.12.10",
+      "sb3": "2.9.0",
+      "torch": "2.13.0+cpu"
+    }
+  },
+  "steps": 2097152
+}

@@ -1,0 +1,27 @@
+{
+  "schema": "conjunction-integration-pins-v1",
+  "sha256": {
+    "experimental_fire_turn/checkpoint.py": "9c3dbd53627439dde8645059f34b729e41f7ace8bb4c8851c86ec038eef601f9",
+    "experimental_fire_turn/common.py": "dda948fd39a771ec5fa689e8e85d4f2af272021fa1edd663eccc4154a4027e23",
+    "experimental_fire_turn/losses.py": "03ab36029af1a7960bdf1d6f2eadc7656f0bd6d1f1ab6f910547a8db54c4d282",
+    "experiments/turning_improvement/A_seed62001_run01/final/bundle.json": "2bc5a5860fb1fc13bddefeb6129a92b67beafff123d420656397f1dc171de0c2",
+    "experiments/turning_improvement/A_seed62001_run01/final/candidate.zip": "76446b967ed91611f0ff2e919b7ef256825961ae707b8b8e277a2143fb43b124",
+    "experiments/turning_improvement/A_seed62001_run01/final/candidate_vecnormalize.pkl": "f120222d6c5dbe8366403fb619d0e48f99959aa5639de145ae4aca62297f51ba",
+    "experiments/turning_improvement/fire_decision_conjunction_v1_20261027_01/metrics.py": "436ebba9e9eff299a39058cc8634a82026bffad6818aea2e4506cb588cbc6c52",
+    "experiments/turning_improvement/fire_decision_conjunction_v1_20261027_01/model.py": "a0c54ea7db4249b0b3b26256d3e2ba66b2777054538f529c5cd612605b340950",
+    "experiments/turning_improvement/fire_decision_conjunction_v1_20261027_01/run.py": "65ee0e0bc2b337b99969c70fdbdf836328c940a24e7712472674b66d8f84d88f",
+    "experiments/turning_improvement/fire_decision_conjunction_v1_run01/integrity.json": "fe69710d971c7ff87f8c5f84af2ff221baef8ccbbab0cf758d30baa98b8b947a",
+    "experiments/turning_improvement/fire_decision_conjunction_v1_run01/plan.json": "8c30f1d2c1c35996ed4c2f2ce672c9f24ca47c1bb7f22072703b3106bdee0746",
+    "experiments/turning_improvement/fire_decision_conjunction_v1_run01/qualified_model.json": "525b58bec4761a0d3c1c2adb76c6557c47a8aa67c80433d4158c7591169ec23d",
+    "experiments/turning_improvement/fire_decision_conjunction_v1_run01/result.json": "03edec108a7b2e008f7b4b45b0059a69a186900809966e0be8313b95a4b88c02",
+    "experiments/turning_improvement/fire_head_manifests_20261026_01/validation.json": "d56fbb6413580e8aafdee35b6163089a31257a4aacafe335bca24913216296d5",
+    "fighter_jet_env.py": "c97741f1579604819ecc61ff3672304ebdb23ac5811f9085ae98e189b56edef9",
+    "hybrid_ppo.py": "911a258e78455acd4ee8eb06966936fe781bcbd33cc04e394d06c12390d4a2e9",
+    "projectile_motion.py": "e01bcfcd09ec468ec64335ad71edf2fb5bede404beb309f3e36eb3a3d82fc1e1",
+    "radar.py": "ec388148ef867d928cb93999642aa7dd0e5f8522a821b50db33117d28b93b5fa",
+    "turning_experiment.py": "fac64ac2afb9e54baa68e1cad3843895fe7e5de74bdb30d0697b3ff03def4c1f",
+    "turning_telemetry.py": "d891b2ef459c4bc35ac68e5914ba898ef660fe2e5c4d62a0d0fa3e369144cb71",
+    "updated_chase_jet_sim_v3.py": "db60b23ed8c9c88c3c5e0d89288ec6776a189db3a75ea5295ea1dfcfbf86dd7a",
+    "weapon_config.py": "e9421592bd9fc8eaacbfa1cdb330b9fa2fab1c57c2c10660d7debb3fd2271366"
+  }
+}
