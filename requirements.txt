@@ -1,6 +1,9 @@
+# Python 3.12.10 (64-bit). These exact versions were used to train and evaluate
+# the final model. Bit-identical retraining requires the same versions and CPU training.
 stable-baselines3==2.9.0
 gymnasium==1.3.0
 Panda3D==1.10.16
 numpy==2.5.2
 torch==2.13.0
+cloudpickle==3.1.2
 matplotlib==3.11.1

@@ -11,6 +11,12 @@ import math
 import random
 import sys
 from pathlib import Path
+from projectile_motion import (
+    linear_position, sphere_crossings, swept_contact_fraction, validate_dt,
+    GuidanceConfig, GuidedMissile, TargetTrack, advance_guided_salvo,
+)
+from radar import RadarConfig, RadarContact, PandaRadar, project_contacts
+from weapon_config import launch_distance_allowed
 
 # ============================================================
 # Portable asset loading
@@ -52,9 +58,24 @@ MISSILE_MOUNT_HPR = Vec3(0.0, 0.0, 0.0)
 MISSILE_LAUNCH_SPEED = 35.0
 MISSILE_MAX_LIFETIME = 20.0
 MISSILE_MAX_RANGE = 25000.0
-# Collision capture radius. This exceeds the maximum ~41.75 m missile travel in
-# one capped 0.05 s physics update at maximum launch velocity.
+# Collision capture radius, applied continuously over each linear frame segment.
 MISSILE_HIT_RADIUS = 50.0
+
+
+def apply_missile_appearance(node):
+    """Project's existing gray material; retain the original embedded textures.
+
+    The previous setTexture(stage, None) attempt raises TypeError in Panda3D,
+    so textures historically remained active. No new paint or tint is added.
+    """
+    material = Material()
+    material.setDiffuse((0.62, 0.62, 0.62, 1.0))
+    material.setAmbient((0.62, 0.62, 0.62, 1.0))
+    material.setSpecular((0.10, 0.10, 0.10, 1.0))
+    material.setShininess(6.0)
+    node.setMaterial(material, 1)
+    node.setColorScale(1, 1, 1, 1)
+    node.setTwoSided(True)
 
 # Physics
 GRAVITY = 0.0
@@ -89,8 +110,12 @@ DIR_BLEND_RATE = 2.5
 # Boundary around enemy (moving spherical chase boundary)
 CHASE_BOUNDARY_RADIUS = 10000.0
 
-# Enemy AI
-ENEMY_PATROL_RADIUS = 250.0
+# Enemy AI. The patrol envelope is intentionally three-dimensional so the
+# pursuer must solve both horizontal and vertical interception geometry.
+ENEMY_PATROL_RADIUS = 1500.0
+ENEMY_PATROL_VERTICAL_RADIUS = 900.0
+ENEMY_PATROL_MIN_ALTITUDE = 350.0
+ENEMY_PATROL_MAX_ALTITUDE = 3200.0
 ENEMY_MIN_SPEED = 140.0
 ENEMY_MAX_SPEED = 240.0
 ENEMY_WAYPOINT_REACH_DIST = 120.0
@@ -228,10 +253,13 @@ class AircraftActor:
         # Visual root: model-only fixups happen here.
         self.visual_root = self.root.attachNewNode(f"{name}_visual_root")
 
-        try:
-            self.model = sim.loader.loadModel(Filename.fromOsSpecific(asset_path(model_path)))
-        except Exception as e:
-            raise RuntimeError(f"Error loading {name} model '{model_path}': {e}")
+        if getattr(sim, "headless", False):
+            self.model = NodePath(name + "_headless")
+        else:
+            try:
+                self.model = sim.loader.loadModel(Filename.fromOsSpecific(asset_path(model_path)))
+            except Exception as e:
+                raise RuntimeError(f"Error loading {name} model '{model_path}': {e}")
 
         self.model.reparentTo(self.visual_root)
 
@@ -335,8 +363,38 @@ class AircraftActor:
 
 
 class JetSim(ShowBase):
-    def __init__(self, enable_missile_vfx=False):
+    def __init__(self, enable_missile_vfx=False, guidance_config=None, headless=False,
+                 radar_config=None):
+        self.headless = bool(headless)
+        self.missile_presentation = True
+        self.player_camera_locked = False
+        self.camera_target = "player"
+        self.guidance_config = guidance_config
+        self.radar_config = radar_config or RadarConfig()
+        self.radar = None
+        self.radar_contacts = {}
+        self.missile_events = []
+        self._missile_sequence = 0
+        self._physics_accumulator = 0.0
         self.rng = random.Random()
+        if self.headless:
+            # Scene graph transforms only: no ShowBase, GPU, window, tasks or assets.
+            self.render = NodePath("headless_simulation")
+            self.player = AircraftActor(self, "player", PLAYER_MODEL_PATH, PLAYER_START_POS,
+                                        PLAYER_START_HPR, PLAYER_SCALE, PLAYER_VISUAL_FIX_HPR, True)
+            self.enemy = AircraftActor(self, "enemy", ENEMY_MODEL_PATH, ENEMY_START_POS,
+                                       ENEMY_START_HPR, ENEMY_SCALE, ENEMY_VISUAL_FIX_HPR)
+            self.enemy.autopilot = True
+            self.missile = self.player.missile_mount_node.attachNewNode("mounted_missile")
+            self.missile_ready = True
+            self.active_missiles = []
+            self.missile_hit = False
+            self.missile_hit_count = 0
+            self.target_destroyed = False
+            self.missile_vfx = None
+            self.game_over = False
+            self.game_over_message = ""
+            return
         super().__init__()
 
         self.render.setShaderAuto()
@@ -386,6 +444,7 @@ class JetSim(ShowBase):
 
         self.missile = None
         self.attach_missile()
+        self.missile_ready = self.missile is not None
         self.active_missiles = []
         self.missile_hit = False
         self.missile_hit_count = 0
@@ -403,6 +462,7 @@ class JetSim(ShowBase):
 
         self.hud_text = None
         self.create_hud()
+        self.radar = PandaRadar(self.a2dBottomRight)
 
         self.setup_controls()
         self.taskMgr.add(self.update_task, "update_task")
@@ -503,73 +563,169 @@ class JetSim(ShowBase):
                 self.player.target_speed = 0.0
 
     def cycle_camera_mode(self):
-        if not self.game_over:
+        if not self.game_over and not self.player_camera_locked:
             self.camera_mode = (self.camera_mode + 1) % 2
+
+    def configure_presentation(self, *, missiles=True, lock_player_camera=False):
+        """Set rendering only; inventory and numerical projectile states are untouched.
+
+        Radar-only mode removes missile geometry, rather than merely hiding it.
+        Empty transform nodes retain compatibility with existing event interfaces.
+        """
+        self.missile_presentation = bool(missiles)
+        self.player_camera_locked = bool(lock_player_camera)
+        if not self.missile_presentation:
+            if self.missile_vfx is not None:
+                self.missile_vfx.destroy()
+                self.missile_vfx = None
+            nodes = [(None, self.missile)] + [(state, state["node"]) for state in self.active_missiles]
+            for state, node in nodes:
+                if node is None or node.isEmpty():
+                    continue
+                replacement = node.getParent().attachNewNode("numerical_missile")
+                replacement.setTransform(node.getTransform())
+                node.removeNode()
+                if state is None:
+                    self.missile = replacement
+                else:
+                    state["node"] = replacement
+        if self.player_camera_locked:
+            self.camera_mode = 0
+            self.camera_target = "player"
+        self.update_camera()
 
     # ========================================================
     # Missile
     # ========================================================
     def enable_missile_effects(self, cinematic=True, slowmo=8.0):
+        if not self.missile_presentation:
+            return None
         from missile_vfx import MissileVFX
 
+        if self.headless:
+            raise ValueError("VFX requires a rendered simulator")
         if self.missile_vfx is not None:
             self.missile_vfx.destroy()
-        self.missile_vfx = MissileVFX(self, cinematic=cinematic, slowmo=slowmo)
+        self.missile_vfx = MissileVFX(self, cinematic=cinematic and not self.player_camera_locked,
+                                      slowmo=slowmo)
         return self.missile_vfx
 
     def destroy(self):
+        if getattr(self, "_stage1_destroyed", False):
+            return
+        self._stage1_destroyed = True
+        simple = getattr(self, "simple_missile_visuals", None)
+        if simple is not None:
+            simple.destroy()
+            self.simple_missile_visuals = None
         effects = getattr(self, "missile_vfx", None)
         if effects is not None:
             effects.destroy()
             self.missile_vfx = None
-        super().destroy()
+        if getattr(self, "radar", None) is not None:
+            self.radar.destroy()
+            self.radar = None
+        if getattr(self, "headless", False):
+            self.render.removeNode()
+        else:
+            super().destroy()
 
     def attach_missile(self):
-        try:
-            self.missile = self.loader.loadModel(Filename.fromOsSpecific(asset_path(MISSILE_MODEL_PATH)))
-        except Exception as e:
-            print("Error loading missile model:", e)
-            self.missile = None
-            return
+        self.missile = self._create_missile_node()
 
         self.missile.reparentTo(self.player.missile_mount_node)
 
-        try:
-            ts_list = self.missile.findAllTextureStages()
-            for ts in ts_list:
-                self.missile.setTexture(ts, None)
-        except Exception:
-            pass
-
-        try:
-            missile_mat = Material()
-            missile_mat.setDiffuse((0.62, 0.62, 0.62, 1.0))
-            missile_mat.setAmbient((0.62, 0.62, 0.62, 1.0))
-            missile_mat.setSpecular((0.10, 0.10, 0.10, 1.0))
-            missile_mat.setShininess(6.0)
-            self.missile.setMaterial(missile_mat, 1)
-            self.missile.setColorScale(1, 1, 1, 1)
-            self.missile.setTwoSided(True)
-        except Exception:
-            pass
+        apply_missile_appearance(self.missile)
 
         self.missile.setScale(MISSILE_RELATIVE_SCALE)
         self.missile.setPos(0, 0, 0)
         self.missile.setHpr(0, 0, 0)
 
+    def _create_missile_node(self):
+        """A missing presentation asset must not disable a numerical weapon."""
+        if not getattr(self, "headless", False) and getattr(self, "missile_presentation", True):
+            try:
+                node = self.loader.loadModel(Filename.fromOsSpecific(asset_path(MISSILE_MODEL_PATH)))
+                apply_missile_appearance(node)
+                return node
+            except (OSError, IOError) as exc:
+                print("Missile presentation asset unavailable:", exc)
+        return NodePath("missile")
+
+    def load_missile_presentation_model(self):
+        """Cache the original asset before flight, at its original world scale.
+
+        The asset nose is local +Z. A -90-degree pitch maps it into the +Y
+        tracking container, whose heading follows numerical missile velocity.
+        Missing assets are reported, never silently replaced with a new shape.
+        """
+        if self.headless:
+            return None
+        path = Path(asset_path(MISSILE_MODEL_PATH))
+        if not path.is_file():
+            raise FileNotFoundError(f"Original missile asset unavailable: {path}")
+        node = self.loader.loadModel(Filename.fromOsSpecific(str(path)))
+        node.setName("original_missile_model")
+        apply_missile_appearance(node)
+        node.setScale(PLAYER_SCALE * MISSILE_RELATIVE_SCALE)
+        node.setHpr(0, -90, 0)
+        return node
+
     def fire_missile(self):
         if self.game_over:
+            return
+        if (self.target_destroyed or self.enemy.crashed
+                or not launch_distance_allowed(
+                    (self.enemy.position - self.player.position).length())):
+            return
+        if not getattr(self, "missile_ready", True):
             return
         if self.missile is None:
             print("Missile model is not available.")
             return
-        if self.missile.isHidden():
+        if not hasattr(self, "missile_ready") and self.missile.isHidden():
             return
 
-        launch_pos = self.missile.getPos(self.render)
-        launch_hpr = self.missile.getHpr(self.render)
+        if getattr(self, "guidance_config", None) is not None:
+            # Authorization/inventory remains here; guidance receives numerical state.
+            direction = self.player.get_forward_vector()
+            launch_velocity = tuple(self.player.velocity + direction * MISSILE_LAUNCH_SPEED)
+            # Aircraft can reach 800 m/s; GuidedMissile requires <=650 m/s by
+            # default. Respect its existing cap instead of crashing on launch.
+            launch_speed = math.hypot(*launch_velocity)
+            if launch_speed > self.guidance_config.max_speed:
+                # Scale in double precision: Panda's float32 Vec3 can round
+                # a normalized diagonal velocity back above the strict cap.
+                scale = math.nextafter(self.guidance_config.max_speed, 0.0) / launch_speed
+                launch_velocity = tuple(component * scale for component in launch_velocity)
+            state = self.launch_guided_missile(
+                "friendly", "enemy", tuple(self.player.position),
+                launch_velocity)
+            if state is not None:
+                self.missile.hide()
+                self.missile_ready = False
+            return
 
-        projectile = self.loader.loadModel(Filename.fromOsSpecific(asset_path(MISSILE_MODEL_PATH)))
+        # Preserve the historical mount offset and launch axis numerically.
+        # The old mesh's local +Z launch direction is intentionally legacy-only.
+        if hasattr(self.player, "position"):
+            aircraft_q, visual_q, mount_q = Quat(), Quat(), Quat()
+            aircraft_q.setHpr(Vec3(self.player.yaw, self.player.pitch, self.player.roll))
+            visual_q.setHpr(PLAYER_VISUAL_FIX_HPR)
+            mount_q.setHpr(MISSILE_MOUNT_HPR)
+            launch_pos = self.player.position + aircraft_q.xform(
+                visual_q.xform(MISSILE_MOUNT_POS * PLAYER_SCALE))
+            launch_direction = aircraft_q.xform(visual_q.xform(mount_q.xform(Vec3(0, 0, 1))))
+            launch_hpr = (aircraft_q * visual_q * mount_q).getHpr()
+        else:
+            # Compatibility for old scene-only callers; new launches use actors.
+            launch_pos = self.missile.getPos(self.render)
+            launch_hpr = self.missile.getHpr(self.render)
+            q = Quat()
+            q.setHpr(launch_hpr)
+            launch_direction = q.xform(Vec3(0, 0, 1))
+
+        projectile = JetSim._create_missile_node(self)
         projectile.reparentTo(self.render)
         projectile.setPos(launch_pos)
         projectile.setHpr(launch_hpr)
@@ -577,28 +733,6 @@ class JetSim(ShowBase):
         world_scale = self.player.visual_root.getScale(self.render).x * MISSILE_RELATIVE_SCALE
         projectile.setScale(world_scale)
 
-        try:
-            ts_list = projectile.findAllTextureStages()
-            for ts in ts_list:
-                projectile.setTexture(ts, None)
-        except Exception:
-            pass
-
-        try:
-            missile_mat = Material()
-            missile_mat.setDiffuse((0.62, 0.62, 0.62, 1.0))
-            missile_mat.setAmbient((0.62, 0.62, 0.62, 1.0))
-            missile_mat.setSpecular((0.10, 0.10, 0.10, 1.0))
-            missile_mat.setShininess(6.0)
-            projectile.setMaterial(missile_mat, 1)
-            projectile.setColorScale(1, 1, 1, 1)
-            projectile.setTwoSided(True)
-        except Exception:
-            pass
-
-        q = Quat()
-        q.setHpr(launch_hpr)
-        launch_direction = q.xform(Vec3(0, 0, 1))
         if vec_length_sq(launch_direction) < 1e-8:
             launch_direction = Vec3(0, 0, 1)
         else:
@@ -606,20 +740,77 @@ class JetSim(ShowBase):
 
         projectile_state = {
             "node": projectile,
+            "position": Vec3(launch_pos),
+            "missile_id": f"missile-{getattr(self, '_missile_sequence', 0)}",
+            "team": "friendly",
+            "target_id": "enemy",
             "velocity": launch_direction * MISSILE_LAUNCH_SPEED + self.player.velocity,
             "age": 0.0,
             "spawn_pos": Vec3(launch_pos),
             "hit_registered": False,
         }
+        self._missile_sequence = getattr(self, "_missile_sequence", 0) + 1
         self.active_missiles.append(projectile_state)
         if self.missile_vfx is not None:
             self.missile_vfx.on_launch(projectile_state)
         self.missile.hide()
+        self.missile_ready = False
         print("Missile launched.")
+
+    def launch_guided_missile(self, team, target_id, position, velocity, config=None):
+        """Numerical launch interface for authorized callers; no AI or ammo policy.
+
+        Both teams and any number of projectiles are supported. The existing
+        player fire interface still consumes exactly one mounted round.
+        """
+        if team not in ("friendly", "enemy") or target_id not in ("player", "enemy"):
+            raise ValueError("unknown team or target")
+        if (team == "friendly") != (target_id == "enemy"):
+            raise ValueError("friendly fire is not supported")
+        target = self.enemy if target_id == "enemy" else self.player
+        if self.game_over or target.crashed or (target_id == "enemy" and self.target_destroyed):
+            return None
+        launcher = self.player if team == "friendly" else self.enemy
+        # Use actor world positions, never the supplied projectile spawn/mount.
+        if not launch_distance_allowed((target.position - launcher.position).length()):
+            return None
+        identity = f"missile-{self._missile_sequence}"
+        guided = GuidedMissile(identity, team, target_id, position, velocity,
+                               config or self.guidance_config or GuidanceConfig())
+        self._missile_sequence += 1
+        node = self._create_missile_node()
+        node.setName(identity)
+        node.reparentTo(self.render)
+        node.setScale(PLAYER_SCALE * MISSILE_RELATIVE_SCALE)
+        node.setPos(*guided.position)
+        state = {"node": node, "guided": guided, "position": Vec3(*guided.position),
+                 "velocity": Vec3(*guided.velocity), "age": 0.0,
+                 "spawn_pos": Vec3(*guided.position), "hit_registered": False,
+                 "missile_id": identity, "team": team, "target_id": target_id}
+        self.active_missiles.append(state)
+        if self.missile_vfx is not None:
+            self.missile_vfx.on_launch(state)
+        return state
 
     def register_missile_hit(self, missile_state):
         """Register one projectile hit and expose the event for future consumers."""
         if missile_state.get("hit_registered", False):
+            return
+
+        target_id = missile_state.get("target_id", "enemy")
+        target = self.enemy if target_id == "enemy" else self.player
+        if target_id == "player":
+            if target.crashed:
+                return
+            missile_state["hit_registered"] = True
+            target.crashed = True
+            target.crash_message = "MISSILE HIT PLAYER"
+            target.velocity = Vec3(0)
+            target.roll_rate = target.pitch_rate = target.yaw_rate = target.turn_rate = 0.0
+            self.game_over = True
+            self.game_over_message = "MISSILE HIT PLAYER"
+            return
+        if self.target_destroyed:
             return
 
         missile_state["hit_registered"] = True
@@ -633,32 +824,101 @@ class JetSim(ShowBase):
         self.enemy.turn_rate = 0.0
         print("MISSILE HIT TARGET")
 
-    def update_missiles(self, dt):
+    def update_missiles(self, dt, target_previous_position=None, player_previous_position=None):
+        """Advance legacy or guided numerical states; apply damage after contact.
+
+        The optional position is the target's actual start of this physics
+        frame, not a prediction. Pass both starts when either team can fire.
+        Callers omitting a start get a stationary-target sweep for that aircraft.
+        This consumes the caller's dt without reading the rendering clock.
+        """
+        dt = validate_dt(dt)
         if not self.active_missiles:
             return
 
+        target_end = Vec3(self.enemy.position)
+        target_start = (Vec3(target_previous_position)
+                        if target_previous_position is not None else target_end)
+        guided_states = [m["guided"] for m in self.active_missiles if "guided" in m]
+        guided_events = {}
+        if guided_states:
+            tracks = {
+                "enemy": TargetTrack("enemy", "enemy", tuple(self.enemy.position),
+                                     tuple(self.enemy.velocity),
+                                     not self.enemy.crashed and not self.target_destroyed),
+                "player": TargetTrack("player", "friendly", tuple(self.player.position),
+                                      tuple(self.player.velocity), not self.player.crashed),
+            }
+            previous = {"enemy": tuple(target_start),
+                        "player": tuple(player_previous_position) if player_previous_position is not None
+                        else tuple(self.player.position)}
+            events = advance_guided_salvo(guided_states, tracks, previous, dt)
+            self.missile_events.extend(events)
+            guided_events = {event.missile_id: event for event in events}
         kept = []
         for m in self.active_missiles:
+            if "guided" in m:
+                guided = m["guided"]
+                event = guided_events.get(guided.missile_id)
+                if event is None or event.reason != "invalid_state":
+                    m.update(position=Vec3(*guided.position), velocity=Vec3(*guided.velocity), age=guided.age)
+                    m["node"].setPos(m["position"])
+                    if m["velocity"].lengthSquared() > 1e-12:
+                        m["node"].lookAt(m["position"] + m["velocity"])
+                        m["node"].setP(m["node"].getP() - 90)
+                    if self.missile_vfx is not None:
+                        self.missile_vfx.on_motion(m)
+                if event is not None:
+                    if event.reason == "hit":
+                        self.register_missile_hit(m)
+                    self._remove_projectile(m, hit=event.reason == "hit")
+                else:
+                    kept.append(m)
+                continue
             node = m["node"]
-            m["age"] += dt
-            node.setPos(node.getPos() + m["velocity"] * dt)
+            start = Vec3(m["position"] if "position" in m else node.getPos())
+            # Already-expired projectiles cannot cause a new contact event.
+            if (m["age"] >= MISSILE_MAX_LIFETIME
+                    or (start - m["spawn_pos"]).length() >= MISSILE_MAX_RANGE
+                    or start.z < -1000):
+                self._remove_projectile(m)
+                continue
+
+            duration = min(dt, MISSILE_MAX_LIFETIME - m["age"])
+            end = Vec3(*linear_position(start, m["velocity"], duration))
+            limit = 1.0
+            boundary_reached = False
+            exits = sphere_crossings(start, end, m["spawn_pos"], MISSILE_MAX_RANGE)
+            if exits is not None and 0.0 <= exits[1] <= limit:
+                limit = exits[1]
+                boundary_reached = True
+            if end.z <= -1000 and end.z != start.z:
+                limit = min(limit, (-1000 - start.z) / (end.z - start.z))
+                boundary_reached = True
+            elapsed = duration * limit
+            end = Vec3(*linear_position(start, m["velocity"], elapsed))
+            target_segment_end = target_start + (target_end - target_start) * (
+                elapsed / dt if dt > 0 else 0.0
+            )
+            contact = None if self.target_destroyed else swept_contact_fraction(
+                start, end, target_start, target_segment_end, MISSILE_HIT_RADIUS
+            )
+            if contact is not None:
+                elapsed *= contact
+                end = Vec3(*linear_position(start, m["velocity"], elapsed))
+            m["age"] += elapsed
+            if "position" in m:
+                m["position"] = Vec3(end)
+            node.setPos(end)
             if self.missile_vfx is not None:
                 self.missile_vfx.on_motion(m)
 
-            if (node.getPos() - self.enemy.position).length() <= MISSILE_HIT_RADIUS:
+            if contact is not None:
                 self.register_missile_hit(m)
                 self._remove_projectile(m, hit=True)
                 continue
 
-            if m["age"] > MISSILE_MAX_LIFETIME:
-                self._remove_projectile(m)
-                continue
-
-            if (node.getPos() - m["spawn_pos"]).length() > MISSILE_MAX_RANGE:
-                self._remove_projectile(m)
-                continue
-
-            if node.getZ() < -1000:
+            if elapsed < dt or m["age"] >= MISSILE_MAX_LIFETIME or boundary_reached:
                 self._remove_projectile(m)
                 continue
 
@@ -845,9 +1105,18 @@ class JetSim(ShowBase):
 
         if e.ai_update_timer <= 0 or (e.ai_waypoint - e.position).length() < ENEMY_WAYPOINT_REACH_DIST:
             e.ai_update_timer = self.rng.uniform(ENEMY_AI_UPDATE_TIME_MIN, ENEMY_AI_UPDATE_TIME_MAX)
-            waypoint_offset = random_point_in_sphere(ENEMY_PATROL_RADIUS, self.rng)
-            waypoint_offset.z *= 0.60
+            unit_offset = random_point_in_sphere(1.0, self.rng)
+            waypoint_offset = Vec3(
+                unit_offset.x * ENEMY_PATROL_RADIUS,
+                unit_offset.y * ENEMY_PATROL_RADIUS,
+                unit_offset.z * ENEMY_PATROL_VERTICAL_RADIUS,
+            )
             e.ai_waypoint = e.ai_patrol_center + waypoint_offset
+            e.ai_waypoint.z = clamp(
+                e.ai_waypoint.z,
+                ENEMY_PATROL_MIN_ALTITUDE,
+                ENEMY_PATROL_MAX_ALTITUDE,
+            )
 
         to_waypoint = e.ai_waypoint - e.position
         if vec_length_sq(to_waypoint) < 1e-8:
@@ -906,13 +1175,15 @@ class JetSim(ShowBase):
     # Camera and HUD
     # ========================================================
     def update_camera(self):
-        if self.game_over:
+        if getattr(self, "headless", False):
+            return
+        if self.game_over and not self.player_camera_locked:
             camera_pos = self.player.position + Vec3(0, -70, 30)
             self.camera.setPos(camera_pos)
             self.camera.lookAt(self.player.position)
             return
 
-        if self.camera_mode == 0:
+        if self.camera_mode == 0 or self.player_camera_locked:
             forward = self.player.get_forward_vector()
             up = self.player.get_up_vector()
             camera_offset_world = forward * self.camera_offset.y + up * self.camera_offset.z
@@ -927,6 +1198,9 @@ class JetSim(ShowBase):
             self.camera.lookAt(camera_pos + look_dir * 100)
 
     def update_hud(self):
+        self.update_radar()
+        if self.headless:
+            return
         rel = self.player.position - self.enemy.position
         radial_distance = rel.length()
         radial_margin = CHASE_BOUNDARY_RADIUS - radial_distance
@@ -1007,32 +1281,51 @@ CONTROLS:
     def update_jet_position(self, actor: AircraftActor):
         actor.sync_graphics()
 
+    def update_radar(self):
+        """Snapshot numerical entities only; destroyed aircraft leave the radar."""
+        contacts = []
+        for identity, team, actor in (("player", "friendly", self.player),
+                                      ("enemy", "enemy", self.enemy)):
+            if not actor.crashed and not (identity == "enemy" and self.target_destroyed):
+                contacts.append(RadarContact(identity, team, "aircraft", tuple(actor.position)))
+        for state in self.active_missiles:
+            if "missile_id" in state and "position" in state:
+                contacts.append(RadarContact(state["missile_id"], state["team"],
+                                             "missile", tuple(state["position"])))
+        self.radar_contacts = project_contacts(contacts, tuple(self.player.position), self.radar_config)
+        if self.radar is not None:
+            self.radar.update(self.radar_contacts)
+
     def update_task(self, task):
         dt = globalClock.getDt()
         if dt <= 0 or self.is_nan_value(dt):
             return Task.cont
 
-        dt = min(dt, 0.05)
+        self._physics_accumulator += dt
 
         try:
-            if not self.game_over:
-                self.update_enemy_ai(dt)
-                self.update_actor_physics(self.player, dt)
-                self.update_actor_physics(self.enemy, dt)
-                self.check_boundary()
-
-            self.update_jet_position(self.player)
-            self.update_jet_position(self.enemy)
+            # Rendering may run faster or slower; physics always consumes 50 ms.
+            while self._physics_accumulator >= 0.05 - 1e-12:
+                self._physics_accumulator = max(0.0, self._physics_accumulator - 0.05)
+                target_previous_position = Vec3(self.enemy.position)
+                player_previous_position = Vec3(self.player.position)
+                if not self.game_over:
+                    self.update_enemy_ai(0.05)
+                    self.update_actor_physics(self.player, 0.05)
+                    self.update_actor_physics(self.enemy, 0.05)
+                    self.check_boundary()
+                self.update_jet_position(self.player)
+                self.update_jet_position(self.enemy)
+                self.update_missiles(0.05, target_previous_position, player_previous_position)
+                if self.missile_vfx is not None:
+                    self.missile_vfx.update_realtime(0.05)
 
             if self.enemy.boundary_sphere is not None:
                 self.enemy.boundary_sphere.setPos(0, 0, 0)
                 self.enemy.boundary_sphere.setScale(CHASE_BOUNDARY_RADIUS)
 
-            self.update_missiles(dt)
             self.update_camera()
             self.update_hud()
-            if self.missile_vfx is not None:
-                self.missile_vfx.update_realtime(dt)
 
         except Exception as e:
             print(f"Error in update loop: {e}")

@@ -52,8 +52,7 @@ class FlightDiagnostics:
         original_fire = env._process_hybrid_fire
 
         def authorized_fire(*args, **kwargs):
-            self._fire_context = ("scripted_demo_physical_gate" if self.firing_authority == "scripted_demonstration"
-                                  else "environment_hybrid_fire")
+            self._fire_context = "environment_hybrid_fire"
             try:
                 return original_fire(*args, **kwargs)
             finally:
@@ -86,8 +85,6 @@ class FlightDiagnostics:
                                      "enemy_rng_sha256": hashlib.sha256(repr(env.sim.rng.getstate()).encode()).hexdigest(),
                                      "observation_after": result[0].tolist(),
                                      "reward": float(result[1]), "weapon": result[4]["weapon"]})
-            if self.firing_authority == "scripted_demonstration":
-                self.transitions[-1]["demo_firing"] = dict(env.last_demo_fire)
             if not matched or not controls_matched:
                 raise RuntimeError("RL audit: policy output did not match the applied environment action")
             return result
@@ -216,19 +213,17 @@ class FlightDiagnostics:
                  "player_path_m": sum(math.dist(row["player_before"]["position"], row["player_after"]["position"])
                                       for row in self.transitions),
                  "all_launches_environment_authorized": all(
-                     row["authorization"] in ("environment_hybrid_fire", "scripted_demo_physical_gate")
+                     row["authorization"] == "environment_hybrid_fire"
                      for row in self.flights)
                      if self.flights else None}
-        if self.firing_authority == "scripted_demonstration":
-            audit.update(firing_authority=self.firing_authority, learned_firing_capability=False,
-                         policy_action_vectors_received_unchanged=audit["all_predictions_applied"])
+        audit.update(firing_authority=self.firing_authority,
+                     policy_action_vectors_received_unchanged=audit["all_predictions_applied"])
         payload = {"metadata": self.metadata, "audit": audit,
                                          "summary": summaries, "samples": self.samples,
                                          "decisions": self.decisions, "transitions": self.transitions,
                                          "frames": self.frames, "flights": self.flights}
         if self.speed_telemetry:
             payload["speed_telemetry"] = self.speed_telemetry
-        # Scripted demonstrations must never overwrite an existing diagnostic.
-        with Path(path).open("x" if self.firing_authority == "scripted_demonstration" else "w", encoding="utf-8") as stream:
+        with Path(path).open("w", encoding="utf-8") as stream:
             stream.write(json.dumps(payload, indent=2) + "\n")
         return summaries

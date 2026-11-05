@@ -16,7 +16,12 @@ SOURCE = PREFIX + 'A_seed62001_run01/final/'
 IMPLEMENTATION = PREFIX + 'fire_decision_conjunction_v1_20261027_01/'
 MANIFEST = PREFIX + 'fire_head_manifests_20261026_01/validation.json'
 # Original artifacts.json remains the historical research inventory.
-PINS_SHA256 = '9ee9ff5365acc456c02f2eecaf9b2f8c4abb178e0ebd4f4861de6312fdc6cd88'
+# runtime_artifacts_500m.json (sha256 9ee9ff53...) pinned the code before the Stage 7
+# 500-1000 m launch envelope. runtime_artifacts_stage7.json re-pins the same files after
+# that change (weapon_config, fighter_jet_env, turning_experiment, turning_telemetry),
+# which leaves Stage 5/6 behaviour unchanged.
+PINS_SHA256 = 'd8cd2a43ad6bd659f5f69e4caed56a0ce3912d2ea0332dca1299497ff9c0010a'
+PINS_FILE = 'runtime_artifacts_stage7.json'
 
 
 def digest(raw):
@@ -40,7 +45,7 @@ def decode(raw):
                       parse_constant=invalid)
 
 
-def verified_inputs(root=ROOT, pins_path=HERE / 'runtime_artifacts_500m.json',
+def verified_inputs(root=ROOT, pins_path=HERE / PINS_FILE,
                     pins_sha256=PINS_SHA256):
     """Hash and consume the same bytes; never open any sealed material."""
     pins_raw = Path(pins_path).read_bytes()
@@ -92,7 +97,7 @@ class FireDecisionAdapter:
         self.input_hashes = {}
 
     @classmethod
-    def create(cls, mode='policy', *, root=ROOT, pins_path=HERE / 'runtime_artifacts_500m.json',
+    def create(cls, mode='policy', *, root=ROOT, pins_path=HERE / PINS_FILE,
                pins_sha256=PINS_SHA256):
         instance = cls()
         if mode == 'policy':

@@ -1,0 +1,60 @@
+{
+  "base_seed": 987654321,
+  "checkpoint_bundle_path": "A:\\Additional Project\\UCAV_RL_Project_Final_v2\\experiments\\fire_policy\\stage7_fire\\final\\bundle.json",
+  "checkpoint_path": "A:\\Additional Project\\UCAV_RL_Project_Final_v2\\experiments\\fire_policy\\stage7_fire\\final\\candidate.zip",
+  "completed_episodes": 1000,
+  "environment": {
+    "enemy_controller": "JetSim.update_enemy_ai rule-based patrol",
+    "episode_termination": {
+      "boundary_failure": "existing environment chase-boundary terminal reason",
+      "missile_wasted": "existing non-hit guided MissileEvent from the simulator",
+      "no_missile_available": "simulator reports no mounted missile and no active projectile",
+      "success": "environment missile_hit_this_step with missile_hit terminal reason",
+      "timeout": "2000 steps without any of the above"
+    },
+    "firing_authority": "PPO Bernoulli fire head (fire bit sampled, seeded per episode; flight at Gaussian mean)",
+    "guided_missiles": true,
+    "launch_envelope": "500 m <= range <= 1000 m, cos(ATA) > 0.95",
+    "launch_range_ceiling_m": 1000.0,
+    "max_episode_steps": 2000,
+    "missile_guidance": "PN + LOS acquisition",
+    "patrol_waypoint_selection": {
+      "ENEMY_PATROL_MAX_ALTITUDE": 3200.0,
+      "ENEMY_PATROL_MIN_ALTITUDE": 350.0,
+      "ENEMY_PATROL_RADIUS": 1500.0,
+      "ENEMY_PATROL_VERTICAL_RADIUS": 900.0
+    },
+    "randomized_enemy_training": false,
+    "simulation_dt_seconds": 0.05,
+    "spawn_mechanism": "viewer resolve_launch_configuration(seed): seed-selected REC-001..REC-006 reset scenario"
+  },
+  "flight_config_path": "A:\\Additional Project\\UCAV_RL_Project_Final_v2\\experiments\\fire_policy\\stage7_fire\\config.json",
+  "input_sha256": {
+    "A:\\Additional Project\\UCAV_RL_Project_Final_v2\\experiments\\fire_policy\\stage7_fire\\config.json": "06d9ccbf7818ae30cd23d6df18a3c03d57280bf399b3da5b07afffe258a2a20e",
+    "A:\\Additional Project\\UCAV_RL_Project_Final_v2\\experiments\\fire_policy\\stage7_fire\\final\\bundle.json": "9884b64bda908524a086e2b16cc1c49f414b116b605cb60bc85e1330a77807ac",
+    "A:\\Additional Project\\UCAV_RL_Project_Final_v2\\experiments\\fire_policy\\stage7_fire\\final\\candidate.zip": "0d279492cae3ed7221d89731c2a528005cf5d87165e175d06e8f1036ceacdf77",
+    "A:\\Additional Project\\UCAV_RL_Project_Final_v2\\experiments\\fire_policy\\stage7_fire\\final\\candidate_vecnormalize.pkl": "f120222d6c5dbe8366403fb619d0e48f99959aa5639de145ae4aca62297f51ba"
+  },
+  "missile_hit_success_rate": 0.979,
+  "missile_hit_successes": 979,
+  "non_hit_episodes": 21,
+  "policy_mode": "sampled",
+  "requested_episodes": 1000,
+  "run_status": "in_progress",
+  "schema": "visualize-hybrid-combat-evaluation-v6",
+  "terminal_reason_counts": {
+    "missile_hit": 979,
+    "missile_wasted:expired": 17,
+    "missile_wasted:floor": 4
+  },
+  "termination_condition_counts": {
+    "missile_hit": 979,
+    "missile_wasted": 21
+  },
+  "total_fire_attempts": 32765,
+  "total_invalid_fire_attempts": 31765,
+  "total_missile_hits": 979,
+  "total_missile_launches": 1000,
+  "total_valid_fire_attempts": 1000,
+  "vecnormalize_path": "A:\\Additional Project\\UCAV_RL_Project_Final_v2\\experiments\\fire_policy\\stage7_fire\\final\\candidate_vecnormalize.pkl"
+}

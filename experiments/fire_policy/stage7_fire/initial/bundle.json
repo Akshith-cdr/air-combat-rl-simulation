@@ -1,0 +1,30 @@
+{
+  "config_sha256": "06d9ccbf7818ae30cd23d6df18a3c03d57280bf399b3da5b07afffe258a2a20e",
+  "fire_authority": "PPO Bernoulli fire head (deterministic evaluation: fire when p >= 0.5)",
+  "frozen_parameters": [
+    "log_std",
+    "mlp_extractor.policy_net.0.weight",
+    "mlp_extractor.policy_net.0.bias",
+    "mlp_extractor.policy_net.2.weight",
+    "mlp_extractor.policy_net.2.bias",
+    "action_net.weight",
+    "action_net.bias"
+  ],
+  "hashes": {
+    "candidate.zip": "ae3b13cad6977ed6ed01cb53e56e827078b1e5dd2bacb7620fa89b62007e91db",
+    "candidate_vecnormalize.pkl": "f120222d6c5dbe8366403fb619d0e48f99959aa5639de145ae4aca62297f51ba"
+  },
+  "kind": "initial",
+  "launch_envelope_m": [
+    500.0,
+    1000.0
+  ],
+  "schema": "stage7-fire-ppo-bundle-v1",
+  "source": "experiments/flight_policy/flight_v2_seed63011_run03/final",
+  "source_hashes": {
+    "candidate.zip": "d29ec44c3ef0e2761c672328fc78d92e7935821aafec0f9074753d3df804ec68",
+    "candidate_vecnormalize.pkl": "f120222d6c5dbe8366403fb619d0e48f99959aa5639de145ae4aca62297f51ba"
+  },
+  "steps": 0,
+  "train_flight": false
+}

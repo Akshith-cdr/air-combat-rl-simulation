@@ -9,7 +9,7 @@ from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 
 from evaluate_ppo import EPISODES, FROZEN_ENEMY_CHALLENGE_MANIFEST, MAX_EVALUATION_STEPS
-from fighter_jet_env import FighterJetEnv
+from fighter_jet_env import DEFAULT_SIMULATION_DT, FighterJetEnv
 from hybrid_ppo import HybridActorCriticPolicy
 
 
@@ -26,7 +26,7 @@ def normalization_path(model_path: Path) -> Path:
 def make_env(stats_path: Path):
     env = VecNormalize.load(
         str(stats_path),
-        DummyVecEnv([lambda: FighterJetEnv(hybrid_fire=True)]),
+        DummyVecEnv([lambda: FighterJetEnv(hybrid_fire=True, simulation_dt=DEFAULT_SIMULATION_DT)]),
     )
     env.training = False
     env.norm_reward = False
@@ -51,6 +51,7 @@ def evaluate(model_path: Path, deterministic: bool, legacy: bool = False) -> lis
         raise FileNotFoundError("Missing hybrid evaluation input: " + ", ".join(missing))
 
     env = make_env(stats_path)
+    print(f"Evaluation simulation timestep: {DEFAULT_SIMULATION_DT} s (fixed; historical timing may differ)")
     results = []
     try:
         model = PPO.load(str(model_path), env=env, device="cpu")
@@ -118,6 +119,7 @@ def evaluate(model_path: Path, deterministic: bool, legacy: bool = False) -> lis
             results.append(
                 {
                     "scenario_id": evaluation_id,
+                    "simulation_dt_seconds": DEFAULT_SIMULATION_DT,
                     "seed": seed,
                     "success": terminal_reason == "missile_hit",
                     "missile_hits": missile_hits,

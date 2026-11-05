@@ -1,0 +1,14 @@
+{
+  "final_bundle": "final",
+  "last_episodes": {
+    "episodes": 200,
+    "hit_rate": 0.975,
+    "hit_rate_given_launch": 0.975,
+    "launch_rate": 1.0,
+    "mean_episode_steps": 500.485,
+    "mean_launch_range_m": 882.7426977539062,
+    "mean_penalized_rejections": 52.06
+  },
+  "status": "complete",
+  "training_steps": 1048576
+}

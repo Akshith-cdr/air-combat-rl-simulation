@@ -183,6 +183,8 @@ def corrected_components(components, previous_range, current_range, cos_ata, dt)
 
 class TrainingFlightEnv(TurningEnv):
     """Existing physics/gate; isolated reward correction and reset curriculum."""
+    REFUND_INVALID_FIRE_PENALTY = True
+
     def __init__(self, config, seed, steps=0, reserved_fingerprints=(), reserved_seeds=()):
         self.training_steps = steps
         self.curriculum_seed = seed
@@ -249,7 +251,9 @@ class TrainingFlightEnv(TurningEnv):
         if gate is None or (gate['launched'] and not (gate['fire_request'] and gate['eligible'])):
             self.episode_metrics['gate_violations'] += 1
             raise RuntimeError('Production gate observation/authorization failure')
-        removed = float(info['weapon']['invalid_fire_attempt'])
+        # Stage 6 fires through a fixed controller, so its rejected-request
+        # penalty is refunded. Stage 7 learns firing and keeps the penalty.
+        removed = float(info['weapon']['invalid_fire_attempt']) if self.REFUND_INVALID_FIRE_PENALTY else 0.
         reward += removed
         self._episode_reward += removed
         parts = info['reward_breakdown']

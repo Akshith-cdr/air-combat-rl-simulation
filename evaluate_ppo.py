@@ -8,7 +8,7 @@ import torch as th
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 
-from fighter_jet_env import FighterJetEnv
+from fighter_jet_env import DEFAULT_SIMULATION_DT, FighterJetEnv
 
 
 MODEL_PATH = Path("models/ppo_ucav_100k_19d_5a_weapon_fire_reward.zip")
@@ -86,7 +86,11 @@ def make_evaluation_env(model_path):
     if not stats_path.exists():
         raise FileNotFoundError(f"Normalization statistics not found: {stats_path}")
 
-    env = VecNormalize.load(str(stats_path), DummyVecEnv([FighterJetEnv]))
+    env = VecNormalize.load(
+        str(stats_path),
+        DummyVecEnv([lambda: FighterJetEnv(simulation_dt=DEFAULT_SIMULATION_DT)]),
+    )
+    print(f"Evaluation simulation timestep: {DEFAULT_SIMULATION_DT} s (fixed; historical timing may differ)")
     env.training = False
     env.norm_reward = False
     return env

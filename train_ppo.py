@@ -7,7 +7,8 @@ import torch
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 
-from fighter_jet_env import FighterJetEnv
+from fighter_jet_env import DEFAULT_SIMULATION_DT, FighterJetEnv
+from training_rules import TRAINING_LAUNCH_CEILING_M, apply_training_launch_rules
 
 
 DEFAULT_TOTAL_TIMESTEPS = 5000
@@ -39,9 +40,11 @@ def normalization_path(model_path):
 
 def make_vec_env(randomized_enemy=False):
     env_factory = (
-        (lambda: FighterJetEnv(randomized_enemy_training=True))
+        (lambda: FighterJetEnv(randomized_enemy_training=True, simulation_dt=DEFAULT_SIMULATION_DT,
+                              launch_range_gate=TRAINING_LAUNCH_CEILING_M))
         if randomized_enemy
-        else FighterJetEnv
+        else (lambda: FighterJetEnv(simulation_dt=DEFAULT_SIMULATION_DT,
+                              launch_range_gate=TRAINING_LAUNCH_CEILING_M))
     )
     return VecNormalize(
         DummyVecEnv([env_factory]),
@@ -52,9 +55,11 @@ def make_vec_env(randomized_enemy=False):
 
 def make_vec_env_from_stats(stats_path, randomized_enemy=False):
     env_factory = (
-        (lambda: FighterJetEnv(randomized_enemy_training=True))
+        (lambda: FighterJetEnv(randomized_enemy_training=True, simulation_dt=DEFAULT_SIMULATION_DT,
+                              launch_range_gate=TRAINING_LAUNCH_CEILING_M))
         if randomized_enemy
-        else FighterJetEnv
+        else (lambda: FighterJetEnv(simulation_dt=DEFAULT_SIMULATION_DT,
+                              launch_range_gate=TRAINING_LAUNCH_CEILING_M))
     )
     env = VecNormalize.load(str(stats_path), DummyVecEnv([env_factory]))
     env.training = True
@@ -280,6 +285,8 @@ def main(
             if init_model_path is None
             else PPO.load(str(init_model_path), env=env, device="cpu")
         )
+        model.simulation_dt_seconds = DEFAULT_SIMULATION_DT
+        print(f"Simulation timestep: {DEFAULT_SIMULATION_DT} s (fixed; historical timing may differ)")
         model.learn(total_timesteps=total_timesteps)
         model_path.parent.mkdir(parents=True, exist_ok=True)
         model.save(str(model_path))
@@ -296,9 +303,11 @@ def main(
         )
 
     verification_factory = (
-        (lambda: FighterJetEnv(randomized_enemy_training=True))
+        (lambda: FighterJetEnv(randomized_enemy_training=True, simulation_dt=DEFAULT_SIMULATION_DT,
+                              launch_range_gate=TRAINING_LAUNCH_CEILING_M))
         if randomized_enemy
-        else FighterJetEnv
+        else (lambda: FighterJetEnv(simulation_dt=DEFAULT_SIMULATION_DT,
+                              launch_range_gate=TRAINING_LAUNCH_CEILING_M))
     )
     verification_env = VecNormalize.load(
         str(normalization_path(model_path)),
@@ -349,6 +358,7 @@ if __name__ == "__main__":
     parser.add_argument("--transfer-source-vecnormalize", type=Path, default=DEFAULT_TRANSFER_SOURCE_STATS)
     parser.add_argument("--transfer-target-model", type=Path, default=DEFAULT_TRANSFER_TARGET_MODEL)
     args = parser.parse_args()
+    apply_training_launch_rules()
     total_timesteps = args.timesteps
     if total_timesteps is None:
         total_timesteps = (

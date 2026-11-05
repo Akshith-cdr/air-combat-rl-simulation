@@ -1,0 +1,26 @@
+{
+  "budget": 1048576,
+  "command": [
+    "train_fire_ppo.py",
+    "--run-id",
+    "stage7_fire"
+  ],
+  "launch_envelope_m": [
+    500.0,
+    1000.0
+  ],
+  "schema": "stage7-learned-fire-ppo-v1",
+  "seed": 71001,
+  "source": "experiments/flight_policy/flight_v2_seed63011_run03/final",
+  "source_hashes": {
+    "candidate.zip": "d29ec44c3ef0e2761c672328fc78d92e7935821aafec0f9074753d3df804ec68",
+    "candidate_vecnormalize.pkl": "f120222d6c5dbe8366403fb619d0e48f99959aa5639de145ae4aca62297f51ba"
+  },
+  "started_from_steps": 0,
+  "versions": {
+    "numpy": "2.5.2",
+    "python": "3.12.10",
+    "stable_baselines3": "2.9.0",
+    "torch": "2.13.0+cpu"
+  }
+}

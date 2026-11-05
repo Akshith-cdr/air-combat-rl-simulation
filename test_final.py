@@ -23,7 +23,7 @@ import torch as th
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 
-from fighter_jet_env import FighterJetEnv
+from fighter_jet_env import DEFAULT_SIMULATION_DT, FIRE_RANGE_GATE, FighterJetEnv
 from hybrid_ppo import HybridActorCriticPolicy
 
 
@@ -80,6 +80,7 @@ DETAIL_COLUMNS = [
 ]
 
 SUMMARY_COLUMNS = [
+    "simulation_dt_seconds",
     "master_seed",
     "policy_seed",
     "model_path",
@@ -159,10 +160,22 @@ def generate_scenarios(count: int, master_seed: int) -> list[dict[str, Any]]:
     return scenarios
 
 
-def make_env(stats_path: Path) -> VecNormalize:
+def make_env(
+    stats_path: Path,
+    fire_range_gate: float = FIRE_RANGE_GATE,
+    simulation_dt: float = DEFAULT_SIMULATION_DT,
+) -> VecNormalize:
     env = VecNormalize.load(
         str(stats_path),
-        DummyVecEnv([lambda: FighterJetEnv(hybrid_fire=True)]),
+        DummyVecEnv(
+            [
+                lambda: FighterJetEnv(
+                    hybrid_fire=True,
+                    fire_range_gate=fire_range_gate,
+                    simulation_dt=simulation_dt,
+                )
+            ]
+        ),
     )
     env.training = False
     env.norm_reward = False
@@ -366,6 +379,7 @@ def summarize(
     policy_seed: int,
     model_path: Path,
     stats_path: Path,
+    simulation_dt: float = DEFAULT_SIMULATION_DT,
 ) -> dict[str, Any]:
     count = len(results)
     successes = sum(bool(row["success"]) for row in results)
@@ -382,6 +396,7 @@ def summarize(
         "model_path": str(model_path),
         "vecnormalize_path": str(stats_path),
         "policy_mode": "stochastic",
+        "simulation_dt_seconds": simulation_dt,
         "total_scenarios": count,
         "successful_engagements": successes,
         "success_rate": successes / count,
@@ -454,8 +469,12 @@ def run(args: argparse.Namespace) -> tuple[Path, Path, dict[str, Any]]:
     print(f"Master seed: {master_seed}")
     print(f"Policy seed: {policy_seed}")
     print("Policy mode: stochastic")
+    print(f"Fire-range gate: {args.fire_range_gate:.1f} m")
 
-    env = make_env(args.vecnormalize_path)
+    print(f"Simulation timestep: {DEFAULT_SIMULATION_DT} s (fixed)")
+    env = make_env(
+        args.vecnormalize_path, args.fire_range_gate, simulation_dt=DEFAULT_SIMULATION_DT
+    )
     results: list[dict[str, Any]] = []
     try:
         model = PPO.load(str(args.model_path), env=env, device="cpu")
@@ -509,8 +528,8 @@ def run(args: argparse.Namespace) -> tuple[Path, Path, dict[str, Any]]:
     print(f"\nSummary:\n{summary_path}")
     print("=" * 50)
     print(
-        "Note: simulator dt comes from Panda3D's wall clock; identical seeds reproduce "
-        "the manifest and random streams, but do not guarantee numerically identical rollouts."
+        "Note: simulation uses a fixed timestep. Historical results with unknown timing "
+        "are not directly comparable; cross-platform exact replay is not guaranteed."
     )
     return detail_path, summary_path, summary
 
@@ -525,6 +544,12 @@ def build_argument_parser() -> argparse.ArgumentParser:
     parser.add_argument("--model-path", type=Path, default=DEFAULT_MODEL_PATH)
     parser.add_argument("--vecnormalize-path", type=Path, default=DEFAULT_VECNORMALIZE_PATH)
     parser.add_argument("--max-steps", type=_positive_int, default=DEFAULT_MAX_STEPS)
+    parser.add_argument(
+        "--fire-range-gate",
+        type=float,
+        default=FIRE_RANGE_GATE,
+        help="Valid-fire range in metres (default: strict final 100 m gate).",
+    )
     return parser
 
 

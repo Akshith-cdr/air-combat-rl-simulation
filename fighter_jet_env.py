@@ -6,10 +6,13 @@ from math import acos, atan2, cos, degrees, hypot, radians, sin
 
 import gymnasium as gym
 import numpy as np
-from direct.showbase.ShowBaseGlobal import globalClock
 from panda3d.core import Vec3
 
 import updated_chase_jet_sim_v3 as sim_mod
+from weapon_config import DEFAULT_MISSILE_LAUNCH_CEILING_M, launch_distance_allowed
+
+
+DEFAULT_SIMULATION_DT = 0.05
 
 
 OBSERVATION_ORDER = [
@@ -52,6 +55,8 @@ TIME_PENALTY = 0.01
 CLOSURE_SCALE = 250.0
 ALIGNMENT_SCALE = 0.01
 D_GATE = 1000.0
+FIRE_RANGE_GATE = 100.0
+FIRE_COS_ATA_GATE = 0.95
 GEOMETRY_PROGRESS_SCALE = 0.10
 MIN_SAFE_SPEED = 150.0
 MIN_SAFE_ALTITUDE = 250.0
@@ -112,13 +117,58 @@ OBSERVATION_HIGH = np.array(
 
 
 class FighterJetEnv(gym.Env):
+    """One configured simulation interval per action, independent of rendering.
+
+    Rewards retain their historical per-step scaling, including the 1/60-second
+    closure reference. Older checkpoints remain loadable, but scores collected
+    with unknown clock timing are not directly comparable to fixed-step runs.
+    """
+
     metadata = {"render_modes": []}
 
-    def __init__(self, randomized_enemy_training=False, hybrid_fire=False):
+    def __init__(
+        self,
+        randomized_enemy_training=False,
+        hybrid_fire=False,
+        fire_range_gate=FIRE_RANGE_GATE,
+        simulation_dt=DEFAULT_SIMULATION_DT,
+        missile_guidance=False,
+        headless=False,
+        launch_range_gate=None,
+    ):
+        # Simulation time belongs to the environment, independently of rendering.
+        try:
+            if isinstance(simulation_dt, (bool, np.bool_)):
+                raise ValueError
+            simulation_dt = float(simulation_dt)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise ValueError("simulation_dt must be a finite positive number of seconds") from exc
+        if not np.isfinite(simulation_dt) or simulation_dt <= 0:
+            raise ValueError("simulation_dt must be a finite positive number of seconds")
+        self.simulation_dt = simulation_dt
+        fire_range_gate = float(fire_range_gate)
+        if not 0.0 < fire_range_gate < D_GATE:
+            raise ValueError(
+                f"fire_range_gate must be between 0 and {D_GATE} metres"
+            )
         self.randomized_enemy_training = bool(randomized_enemy_training)
         self.hybrid_fire = bool(hybrid_fire)
+        self.fire_range_gate = fire_range_gate
+        # Keep the historical reward reference separate from launch authorization.
+        # The launch ceiling is inclusive; the default is the 1000 m envelope limit.
+        launch_range_gate = (DEFAULT_MISSILE_LAUNCH_CEILING_M if launch_range_gate is None
+                             else float(launch_range_gate))
+        if not np.isfinite(launch_range_gate) or not 0 < launch_range_gate <= D_GATE:
+            raise ValueError(f"launch_range_gate must be finite and between 0 and {D_GATE} metres")
+        self.launch_range_gate = launch_range_gate
         self._randomized_enemy_episode = 0
-        self.sim = sim_mod.JetSim()
+        # Opt-in guidance keeps the saved policy's legacy weapon dynamics default.
+        config = (sim_mod.GuidanceConfig() if missile_guidance is True else
+                  missile_guidance if isinstance(missile_guidance, sim_mod.GuidanceConfig) else None)
+        if missile_guidance is not False and config is None:
+            raise ValueError("missile_guidance must be False, True or GuidanceConfig")
+        self.sim = (sim_mod.JetSim(guidance_config=config, headless=headless)
+                    if headless or config is not None else sim_mod.JetSim())
         self.action_space = gym.spaces.Box(
             low=np.array(
                 [-1.0, -1.0, -1.0, -1.0, 0.0 if self.hybrid_fire else -1.0],
@@ -136,7 +186,7 @@ class FighterJetEnv(gym.Env):
         )
         self._prev_range = None
         self._prev_cos_ata = None
-        self._last_dt = 1.0 / 60.0
+        self._last_dt = self.simulation_dt
         self._episode_step = 0
         self._episode_reward = 0.0
         self._previous_fire_signal = 0.0
@@ -167,6 +217,8 @@ class FighterJetEnv(gym.Env):
 
     def _missile_available(self):
         """Return whether the simulator's single mounted missile is still present."""
+        if hasattr(self.sim, "missile_ready"):
+            return self.sim.missile_ready
         missile = getattr(self.sim, "missile", None)
         return missile is not None and not missile.isHidden()
 
@@ -177,12 +229,14 @@ class FighterJetEnv(gym.Env):
         if not fire_request:
             return False, False, False
 
+        current_range = self._distance_to_target()
         valid_fire = (
             not getattr(self.sim, "target_destroyed", False)
             and not self.sim.game_over
             and self._missile_available()
-            and current_range < 100.0
-            and current_cos_ata > 0.95
+            and launch_distance_allowed(current_range)
+            and current_range <= getattr(self, "launch_range_gate", self.fire_range_gate)
+            and current_cos_ata > FIRE_COS_ATA_GATE
         )
         if not valid_fire:
             return True, False, True
@@ -198,12 +252,14 @@ class FighterJetEnv(gym.Env):
         if not fire_request:
             return False, False, False
 
+        current_range = self._distance_to_target()
         valid_fire = (
             not getattr(self.sim, "target_destroyed", False)
             and not self.sim.game_over
             and self._missile_available()
-            and current_range < 100.0
-            and current_cos_ata > 0.95
+            and launch_distance_allowed(current_range)
+            and current_range <= getattr(self, "launch_range_gate", self.fire_range_gate)
+            and current_cos_ata > FIRE_COS_ATA_GATE
         )
         if not valid_fire:
             return True, False, True
@@ -214,6 +270,9 @@ class FighterJetEnv(gym.Env):
         return True, launched, not launched
 
     def _clear_missile_runtime_state(self):
+        simple = getattr(self.sim, "simple_missile_visuals", None)
+        if simple is not None:
+            simple.reset()
         effects = getattr(self.sim, "missile_vfx", None)
         if effects is not None:
             effects.reset()
@@ -226,6 +285,15 @@ class FighterJetEnv(gym.Env):
                     except Exception:
                         pass
             self.sim.active_missiles = []
+
+        if hasattr(self.sim, "missile_events"):
+            self.sim.missile_events.clear()
+            self.sim._missile_sequence = 0
+            self.sim._physics_accumulator = 0.0
+            self.sim.missile_ready = True
+            self.sim.radar_contacts.clear()
+            if self.sim.radar is not None:
+                self.sim.radar.reset()
 
         if self.sim.missile is not None:
             try:
@@ -358,7 +426,7 @@ class FighterJetEnv(gym.Env):
 
         self._prev_range = float((enemy.position - player.position).length())
         self._prev_cos_ata = self._current_cos_ata()
-        self._last_dt = 1.0 / 60.0
+        self._last_dt = self.simulation_dt
 
     def _distance_to_target(self):
         rel = self.sim.player.position - self.sim.enemy.position
@@ -504,7 +572,8 @@ class FighterJetEnv(gym.Env):
             * max(
                 0.0,
                 np.clip(
-                    (current_cos_ata - 0.95) / (1.0 - 0.95),
+                    (current_cos_ata - FIRE_COS_ATA_GATE)
+                    / (1.0 - FIRE_COS_ATA_GATE),
                     -1.0,
                     1.0,
                 ),
@@ -514,14 +583,14 @@ class FighterJetEnv(gym.Env):
         # use the same clipped potential, so exiting the gate is penalized.
         current_distance_progress = float(
             np.clip(
-                (D_GATE - current_range) / (D_GATE - 100.0),
+                (D_GATE - current_range) / (D_GATE - self.fire_range_gate),
                 0.0,
                 1.0,
             )
         )
         previous_distance_progress = float(
             np.clip(
-                (D_GATE - prev_range) / (D_GATE - 100.0),
+                (D_GATE - prev_range) / (D_GATE - self.fire_range_gate),
                 0.0,
                 1.0,
             )
@@ -612,9 +681,12 @@ class FighterJetEnv(gym.Env):
         self._reset_simulation_state(enemy_challenge_scenario)
         self._prev_range = float((self.sim.enemy.position - self.sim.player.position).length())
         self._prev_cos_ata = self._current_cos_ata()
-        self._last_dt = 1.0 / 60.0
+        self._last_dt = self.simulation_dt
         obs = self._get_observation()
+        if hasattr(self.sim, "update_radar"):
+            self.sim.update_radar()
         info = {"episode": {"length": 0, "terminated": False, "truncated": False}}
+        info["simulation_dt_seconds"] = self.simulation_dt
         if enemy_challenge_scenario is not None:
             info["challenge_scenario_id"] = enemy_challenge_scenario["scenario_id"]
         return obs.astype(np.float32), info
@@ -639,10 +711,11 @@ class FighterJetEnv(gym.Env):
         )
         missile_hit_before_step = bool(getattr(self.sim, "missile_hit", False))
 
-        dt = float(globalClock.getDt())
-        dt = min(max(dt, 0.0), 0.05)
+        dt = self.simulation_dt
         self._last_dt = dt
 
+        target_previous_position = Vec3(self.sim.enemy.position)
+        player_previous_position = Vec3(self.sim.player.position)
         if not self.sim.game_over:
             self.sim.update_enemy_ai(dt)
             self.sim.update_actor_physics(self.sim.player, dt)
@@ -655,7 +728,11 @@ class FighterJetEnv(gym.Env):
             self.sim.enemy.boundary_sphere.setPos(0, 0, 0)
             self.sim.enemy.boundary_sphere.setScale(sim_mod.CHASE_BOUNDARY_RADIUS)
 
-        self.sim.update_missiles(dt)
+        if (getattr(self.sim, "guidance_config", None) is not None
+                or any("guided" in state for state in self.sim.active_missiles)):
+            self.sim.update_missiles(dt, target_previous_position, player_previous_position)
+        else:
+            self.sim.update_missiles(dt, target_previous_position)
         self.sim.update_camera()
         self.sim.update_hud()
 
@@ -686,6 +763,8 @@ class FighterJetEnv(gym.Env):
             terminal_reason = "missile_hit"
         elif self.sim.game_over and "CHASE BOUNDARY" in self.sim.game_over_message:
             terminal_reason = self.sim.game_over_message
+        elif self.sim.game_over and self.sim.game_over_message == "MISSILE HIT PLAYER":
+            terminal_reason = "missile_hit_player"
 
         info = {
             "episode": {
@@ -725,6 +804,12 @@ class FighterJetEnv(gym.Env):
         }
 
         return obs.astype(np.float32), reward, terminated, truncated, info
+
+    def close(self):
+        """Release rendered or headless simulation resources."""
+        destroy = getattr(self.sim, "destroy", None)
+        if destroy is not None:
+            destroy()
 
 
 __all__ = ["FighterJetEnv"]

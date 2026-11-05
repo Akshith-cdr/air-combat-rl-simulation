@@ -1,0 +1,546 @@
+{
+  "development": [
+    {
+      "environment_seed": 84011,
+      "episode_id": "development-0000",
+      "pair_id": 0,
+      "policy_seed": 85011,
+      "scenario": {
+        "altitude": 1648.2911154464705,
+        "bearing": 1.3574659211852556,
+        "delta_altitude": 197.18038875544278,
+        "distance": 1970.8555533319607,
+        "enemy_speed": 157.25163376854982,
+        "family": "ahead",
+        "player_heading": 30.0,
+        "player_speed": 182.1700044453829,
+        "relative_enemy_heading": -2.471861405562322
+      },
+      "scenario_sha256": "41f3a9cf365e1d0b25298ceab54e6671d5664618c01cb4e42cf22ac301ec0130"
+    },
+    {
+      "environment_seed": 84012,
+      "episode_id": "development-0001",
+      "pair_id": 0,
+      "policy_seed": 85012,
+      "scenario": {
+        "altitude": 1648.2911154464705,
+        "bearing": -1.3574659211852556,
+        "delta_altitude": 197.18038875544278,
+        "distance": 1970.8555533319607,
+        "enemy_speed": 157.25163376854982,
+        "family": "ahead",
+        "player_heading": 30.0,
+        "player_speed": 182.1700044453829,
+        "relative_enemy_heading": 2.471861405562322
+      },
+      "scenario_sha256": "ca5c29f2531e73bf939090d02a8cc359e34cc3cb38576f3a624d424aa3a76681"
+    },
+    {
+      "environment_seed": 84013,
+      "episode_id": "development-0002",
+      "pair_id": 1,
+      "policy_seed": 85013,
+      "scenario": {
+        "altitude": 1668.4047065132545,
+        "bearing": -47.17782405861102,
+        "delta_altitude": 223.0392197901026,
+        "distance": 2333.1974784028585,
+        "enemy_speed": 154.79307379231284,
+        "family": "left",
+        "player_heading": 210.0,
+        "player_speed": 250.89636889830672,
+        "relative_enemy_heading": -131.96105791122434
+      },
+      "scenario_sha256": "370aa4293a4e3da6f962f75506b9ef682d5b04349104c869dec18f0bf95071ac"
+    },
+    {
+      "environment_seed": 84014,
+      "episode_id": "development-0003",
+      "pair_id": 1,
+      "policy_seed": 85014,
+      "scenario": {
+        "altitude": 1668.4047065132545,
+        "bearing": 47.17782405861102,
+        "delta_altitude": 223.0392197901026,
+        "distance": 2333.1974784028585,
+        "enemy_speed": 154.79307379231284,
+        "family": "right",
+        "player_heading": 210.0,
+        "player_speed": 250.89636889830672,
+        "relative_enemy_heading": 131.96105791122434
+      },
+      "scenario_sha256": "2f8a1f721175666ae6a0fa5b65ac1ad022924271cd5cdd7e3f78da845b803838"
+    },
+    {
+      "environment_seed": 84015,
+      "episode_id": "development-0004",
+      "pair_id": 2,
+      "policy_seed": 85015,
+      "scenario": {
+        "altitude": 1389.9729053103924,
+        "bearing": 55.06179973021628,
+        "delta_altitude": 285.9056901676231,
+        "distance": 2332.7188544350774,
+        "enemy_speed": 144.52047280670752,
+        "family": "right",
+        "player_heading": 270.0,
+        "player_speed": 164.6608236602808,
+        "relative_enemy_heading": -77.90148993872867
+      },
+      "scenario_sha256": "7dda2f053500d645364e19dd6fdb9491dac3d4a99f5374ab5d33511f6cee2085"
+    },
+    {
+      "environment_seed": 84016,
+      "episode_id": "development-0005",
+      "pair_id": 2,
+      "policy_seed": 85016,
+      "scenario": {
+        "altitude": 1389.9729053103924,
+        "bearing": -55.06179973021628,
+        "delta_altitude": 285.9056901676231,
+        "distance": 2332.7188544350774,
+        "enemy_speed": 144.52047280670752,
+        "family": "left",
+        "player_heading": 270.0,
+        "player_speed": 164.6608236602808,
+        "relative_enemy_heading": 77.90148993872867
+      },
+      "scenario_sha256": "bdccbebfa2e11065989b019ca9e867420d1ba0f48a5c7b8873883e120750265a"
+    },
+    {
+      "environment_seed": 84017,
+      "episode_id": "development-0006",
+      "pair_id": 3,
+      "policy_seed": 85017,
+      "scenario": {
+        "altitude": 1055.5573422765938,
+        "bearing": -136.00978299293405,
+        "delta_altitude": 481.8383201611465,
+        "distance": 2548.8150271069826,
+        "enemy_speed": 188.9253655054101,
+        "family": "behind_left",
+        "player_heading": 210.0,
+        "player_speed": 185.39026990178638,
+        "relative_enemy_heading": -113.07471939318032
+      },
+      "scenario_sha256": "dbeb4639e7c2abf482ba7405617f9a119835ccd3c8b6124107093e3a03b66ff6"
+    },
+    {
+      "environment_seed": 84018,
+      "episode_id": "development-0007",
+      "pair_id": 3,
+      "policy_seed": 85018,
+      "scenario": {
+        "altitude": 1055.5573422765938,
+        "bearing": 136.00978299293405,
+        "delta_altitude": 481.8383201611465,
+        "distance": 2548.8150271069826,
+        "enemy_speed": 188.9253655054101,
+        "family": "behind_right",
+        "player_heading": 210.0,
+        "player_speed": 185.39026990178638,
+        "relative_enemy_heading": 113.07471939318032
+      },
+      "scenario_sha256": "eb6c7231a8af1c035b87d1e343ffbdf5d00a172d7ce72646c49877d7ed1403e7"
+    },
+    {
+      "environment_seed": 84019,
+      "episode_id": "development-0008",
+      "pair_id": 4,
+      "policy_seed": 85019,
+      "scenario": {
+        "altitude": 1707.2057299024173,
+        "bearing": 107.41072979124324,
+        "delta_altitude": 321.94722064617724,
+        "distance": 2389.6059498483246,
+        "enemy_speed": 193.76721961502432,
+        "family": "behind_right",
+        "player_heading": 150.0,
+        "player_speed": 197.2422616271794,
+        "relative_enemy_heading": -3.1409388205250934
+      },
+      "scenario_sha256": "c00152d5e73a0055609605fd54846003a2aa828e9dea3f7d5441f91ba7da7786"
+    },
+    {
+      "environment_seed": 84020,
+      "episode_id": "development-0009",
+      "pair_id": 4,
+      "policy_seed": 85020,
+      "scenario": {
+        "altitude": 1707.2057299024173,
+        "bearing": -107.41072979124324,
+        "delta_altitude": 321.94722064617724,
+        "distance": 2389.6059498483246,
+        "enemy_speed": 193.76721961502432,
+        "family": "behind_left",
+        "player_heading": 150.0,
+        "player_speed": 197.2422616271794,
+        "relative_enemy_heading": 3.1409388205250934
+      },
+      "scenario_sha256": "02cc767298a5fc37b244dafde8f79cd7283324d6405419419c68600593f7b16c"
+    }
+  ],
+  "final": [
+    {
+      "environment_seed": 94011,
+      "episode_id": "final-0000",
+      "pair_id": 0,
+      "policy_seed": 95011,
+      "scenario": {
+        "altitude": 1996.7330266058384,
+        "bearing": 13.18753582683085,
+        "delta_altitude": -301.11791948654576,
+        "distance": 3487.2871058997507,
+        "enemy_speed": 237.01718469135142,
+        "family": "ahead",
+        "player_heading": 90.0,
+        "player_speed": 195.50131216406967,
+        "relative_enemy_heading": -36.077769412485324
+      },
+      "scenario_sha256": "9c86286bb4f8e35ba6fdffd71ca86873426bf6e3398e04a16105a395c920dd9c"
+    },
+    {
+      "environment_seed": 94012,
+      "episode_id": "final-0001",
+      "pair_id": 0,
+      "policy_seed": 95012,
+      "scenario": {
+        "altitude": 1996.7330266058384,
+        "bearing": -13.18753582683085,
+        "delta_altitude": -301.11791948654576,
+        "distance": 3487.2871058997507,
+        "enemy_speed": 237.01718469135142,
+        "family": "ahead",
+        "player_heading": 90.0,
+        "player_speed": 195.50131216406967,
+        "relative_enemy_heading": 36.077769412485324
+      },
+      "scenario_sha256": "aec4731c6fbe5bd1997b13129742ac17751ab51020818a3eb1d9f6728b20a877"
+    },
+    {
+      "environment_seed": 94013,
+      "episode_id": "final-0002",
+      "pair_id": 1,
+      "policy_seed": 95013,
+      "scenario": {
+        "altitude": 1133.2503683261339,
+        "bearing": -44.466192435153026,
+        "delta_altitude": 32.91896276845546,
+        "distance": 1518.8196291276556,
+        "enemy_speed": 193.38788116475644,
+        "family": "left",
+        "player_heading": 30.0,
+        "player_speed": 226.47078571824392,
+        "relative_enemy_heading": 70.4839423469511
+      },
+      "scenario_sha256": "2cf66b5a19b424b8142ad363ba900f1689413760d6ed2074df559ee6f4b3a9f6"
+    },
+    {
+      "environment_seed": 94014,
+      "episode_id": "final-0003",
+      "pair_id": 1,
+      "policy_seed": 95014,
+      "scenario": {
+        "altitude": 1133.2503683261339,
+        "bearing": 44.466192435153026,
+        "delta_altitude": 32.91896276845546,
+        "distance": 1518.8196291276556,
+        "enemy_speed": 193.38788116475644,
+        "family": "right",
+        "player_heading": 30.0,
+        "player_speed": 226.47078571824392,
+        "relative_enemy_heading": -70.4839423469511
+      },
+      "scenario_sha256": "0a1fe242d74a2ea70b711826eef6d2874d41c0cf855c69e25e25d7b3f156070e"
+    },
+    {
+      "environment_seed": 94015,
+      "episode_id": "final-0004",
+      "pair_id": 2,
+      "policy_seed": 95015,
+      "scenario": {
+        "altitude": 2019.6675720285034,
+        "bearing": 41.11332473147181,
+        "delta_altitude": -155.54826725322425,
+        "distance": 4508.789138487762,
+        "enemy_speed": 181.45391309398613,
+        "family": "right",
+        "player_heading": 90.0,
+        "player_speed": 237.85987971892695,
+        "relative_enemy_heading": -0.010607055060461335
+      },
+      "scenario_sha256": "843fc996aa33ebf07f6e3b0670ab7a2de9401fd7544fe424d1ed44cae324c530"
+    },
+    {
+      "environment_seed": 94016,
+      "episode_id": "final-0005",
+      "pair_id": 2,
+      "policy_seed": 95016,
+      "scenario": {
+        "altitude": 2019.6675720285034,
+        "bearing": -41.11332473147181,
+        "delta_altitude": -155.54826725322425,
+        "distance": 4508.789138487762,
+        "enemy_speed": 181.45391309398613,
+        "family": "left",
+        "player_heading": 90.0,
+        "player_speed": 237.85987971892695,
+        "relative_enemy_heading": 0.010607055060461335
+      },
+      "scenario_sha256": "9cd0930401263e47a8ccb01c60dbe776e4a33d317039e5c8959254d47e7bfb47"
+    },
+    {
+      "environment_seed": 94017,
+      "episode_id": "final-0006",
+      "pair_id": 3,
+      "policy_seed": 95017,
+      "scenario": {
+        "altitude": 2126.4650294102767,
+        "bearing": -105.7806091278421,
+        "delta_altitude": 422.6395414368143,
+        "distance": 3014.7078921300927,
+        "enemy_speed": 213.40274212690258,
+        "family": "behind_left",
+        "player_heading": 210.0,
+        "player_speed": 249.06243554309793,
+        "relative_enemy_heading": 132.4552530978396
+      },
+      "scenario_sha256": "c468e7bf3ce0217a9f6e9d26b5c3a06a2d02ec2f84b196a346fc760ce9dbe4b3"
+    },
+    {
+      "environment_seed": 94018,
+      "episode_id": "final-0007",
+      "pair_id": 3,
+      "policy_seed": 95018,
+      "scenario": {
+        "altitude": 2126.4650294102767,
+        "bearing": 105.7806091278421,
+        "delta_altitude": 422.6395414368143,
+        "distance": 3014.7078921300927,
+        "enemy_speed": 213.40274212690258,
+        "family": "behind_right",
+        "player_heading": 210.0,
+        "player_speed": 249.06243554309793,
+        "relative_enemy_heading": -132.4552530978396
+      },
+      "scenario_sha256": "7582e3d0408bd68d4f12d42877ee999d6f9f98c4c970f72b226e38497c196d9b"
+    },
+    {
+      "environment_seed": 94019,
+      "episode_id": "final-0008",
+      "pair_id": 4,
+      "policy_seed": 95019,
+      "scenario": {
+        "altitude": 1268.475827819127,
+        "bearing": 102.15636010933532,
+        "delta_altitude": 228.76975963740358,
+        "distance": 4063.968480212727,
+        "enemy_speed": 208.82748765826764,
+        "family": "behind_right",
+        "player_heading": 330.0,
+        "player_speed": 204.2458726540128,
+        "relative_enemy_heading": 128.86147804889612
+      },
+      "scenario_sha256": "8a919e7afed857b006e5def28ae2e8b6ce49eef011e1f7e6507797fbfee6a7a4"
+    },
+    {
+      "environment_seed": 94020,
+      "episode_id": "final-0009",
+      "pair_id": 4,
+      "policy_seed": 95020,
+      "scenario": {
+        "altitude": 1268.475827819127,
+        "bearing": -102.15636010933532,
+        "delta_altitude": 228.76975963740358,
+        "distance": 4063.968480212727,
+        "enemy_speed": 208.82748765826764,
+        "family": "behind_left",
+        "player_heading": 330.0,
+        "player_speed": 204.2458726540128,
+        "relative_enemy_heading": -128.86147804889612
+      },
+      "scenario_sha256": "01c2f6440afba129a90828543372e17d7a5e4f40b1ddf20404e8ff6d1e75653e"
+    },
+    {
+      "environment_seed": 94021,
+      "episode_id": "final-0010",
+      "pair_id": 5,
+      "policy_seed": 95021,
+      "scenario": {
+        "altitude": 1170.8387398821205,
+        "bearing": -0.3183891458220618,
+        "delta_altitude": 46.07392962085635,
+        "distance": 4780.573792796742,
+        "enemy_speed": 142.96655006251575,
+        "family": "ahead",
+        "player_heading": 330.0,
+        "player_speed": 202.73971770724413,
+        "relative_enemy_heading": 102.16715144654302
+      },
+      "scenario_sha256": "2c1eea00b5c1129c700c4072bfbba1547b39b0b7adfb21b5b275f1991bce9371"
+    },
+    {
+      "environment_seed": 94022,
+      "episode_id": "final-0011",
+      "pair_id": 5,
+      "policy_seed": 95022,
+      "scenario": {
+        "altitude": 1170.8387398821205,
+        "bearing": 0.3183891458220618,
+        "delta_altitude": 46.07392962085635,
+        "distance": 4780.573792796742,
+        "enemy_speed": 142.96655006251575,
+        "family": "ahead",
+        "player_heading": 330.0,
+        "player_speed": 202.73971770724413,
+        "relative_enemy_heading": -102.16715144654302
+      },
+      "scenario_sha256": "5f78e37dd4aadc7045524295fd8e5a11935418fd83d81a0c35e4224a71b06355"
+    },
+    {
+      "environment_seed": 94023,
+      "episode_id": "final-0012",
+      "pair_id": 6,
+      "policy_seed": 95023,
+      "scenario": {
+        "altitude": 1607.8004564744651,
+        "bearing": -40.50267694488786,
+        "delta_altitude": -445.4717487201112,
+        "distance": 3580.7378632789323,
+        "enemy_speed": 156.8213752434981,
+        "family": "left",
+        "player_heading": 330.0,
+        "player_speed": 229.48879884929298,
+        "relative_enemy_heading": -10.10931600004318
+      },
+      "scenario_sha256": "1d1d827830e250425a32dbbbc52ba1466b6618a3d99c48120d730278c2a3465f"
+    },
+    {
+      "environment_seed": 94024,
+      "episode_id": "final-0013",
+      "pair_id": 6,
+      "policy_seed": 95024,
+      "scenario": {
+        "altitude": 1607.8004564744651,
+        "bearing": 40.50267694488786,
+        "delta_altitude": -445.4717487201112,
+        "distance": 3580.7378632789323,
+        "enemy_speed": 156.8213752434981,
+        "family": "right",
+        "player_heading": 330.0,
+        "player_speed": 229.48879884929298,
+        "relative_enemy_heading": 10.10931600004318
+      },
+      "scenario_sha256": "17b656a9716c30b7795cc36f217570c48f9bfac2a05097b0b3a275477854253e"
+    },
+    {
+      "environment_seed": 94025,
+      "episode_id": "final-0014",
+      "pair_id": 7,
+      "policy_seed": 95025,
+      "scenario": {
+        "altitude": 1348.91796793119,
+        "bearing": 74.48909961090065,
+        "delta_altitude": 451.6504239088606,
+        "distance": 4163.922056081877,
+        "enemy_speed": 218.96364325364914,
+        "family": "right",
+        "player_heading": 90.0,
+        "player_speed": 223.40241060564793,
+        "relative_enemy_heading": 79.01119523198113
+      },
+      "scenario_sha256": "0da60d8c12cc2dadb0a63bd573774b44ef9e1cd4dbe88b7184e395556e581355"
+    },
+    {
+      "environment_seed": 94026,
+      "episode_id": "final-0015",
+      "pair_id": 7,
+      "policy_seed": 95026,
+      "scenario": {
+        "altitude": 1348.91796793119,
+        "bearing": -74.48909961090065,
+        "delta_altitude": 451.6504239088606,
+        "distance": 4163.922056081877,
+        "enemy_speed": 218.96364325364914,
+        "family": "left",
+        "player_heading": 90.0,
+        "player_speed": 223.40241060564793,
+        "relative_enemy_heading": -79.01119523198113
+      },
+      "scenario_sha256": "83c5ba31445b626fca3c654572d28413b6738ecf5db1e8a278675a29344173f6"
+    },
+    {
+      "environment_seed": 94027,
+      "episode_id": "final-0016",
+      "pair_id": 8,
+      "policy_seed": 95027,
+      "scenario": {
+        "altitude": 2090.6426103093245,
+        "bearing": -105.23631509382687,
+        "delta_altitude": 11.51497166299555,
+        "distance": 1697.4935971407153,
+        "enemy_speed": 232.3330070926279,
+        "family": "behind_left",
+        "player_heading": 30.0,
+        "player_speed": 219.2211225230387,
+        "relative_enemy_heading": -136.7254994286239
+      },
+      "scenario_sha256": "2f68d1d5dad114425407530f1866f289b67b41c073563e287713a0109623e273"
+    },
+    {
+      "environment_seed": 94028,
+      "episode_id": "final-0017",
+      "pair_id": 8,
+      "policy_seed": 95028,
+      "scenario": {
+        "altitude": 2090.6426103093245,
+        "bearing": 105.23631509382687,
+        "delta_altitude": 11.51497166299555,
+        "distance": 1697.4935971407153,
+        "enemy_speed": 232.3330070926279,
+        "family": "behind_right",
+        "player_heading": 30.0,
+        "player_speed": 219.2211225230387,
+        "relative_enemy_heading": 136.7254994286239
+      },
+      "scenario_sha256": "60e52da2622cc83333b428ca37243fab70c6bd32d5326f683be67ab3879140b2"
+    },
+    {
+      "environment_seed": 94029,
+      "episode_id": "final-0018",
+      "pair_id": 9,
+      "policy_seed": 95029,
+      "scenario": {
+        "altitude": 1535.4677143210547,
+        "bearing": 105.70477617237003,
+        "delta_altitude": -273.69569185172475,
+        "distance": 2954.477370869612,
+        "enemy_speed": 214.95901829403465,
+        "family": "behind_right",
+        "player_heading": 270.0,
+        "player_speed": 189.75551450288717,
+        "relative_enemy_heading": 59.18856399907688
+      },
+      "scenario_sha256": "98955582a2b36ad354d6bce09fe5ca619522cd496410567c048a03fd23b2dc7a"
+    },
+    {
+      "environment_seed": 94030,
+      "episode_id": "final-0019",
+      "pair_id": 9,
+      "policy_seed": 95030,
+      "scenario": {
+        "altitude": 1535.4677143210547,
+        "bearing": -105.70477617237003,
+        "delta_altitude": -273.69569185172475,
+        "distance": 2954.477370869612,
+        "enemy_speed": 214.95901829403465,
+        "family": "behind_left",
+        "player_heading": 270.0,
+        "player_speed": 189.75551450288717,
+        "relative_enemy_heading": -59.18856399907688
+      },
+      "scenario_sha256": "14e6400bb8f1179a604069fa6b9f5ccb3b7af63fba89e0d945486944274b6698"
+    }
+  ]
+}

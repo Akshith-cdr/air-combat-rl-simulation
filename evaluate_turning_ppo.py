@@ -155,8 +155,6 @@ def main():
     parser.add_argument('--common-horizon-steps',type=int,default=100,
                         help='Instrumented bearing comparison prefix, capped to available steps.')
     args=parser.parse_args()
-    from training_rules import apply_training_launch_rules
-    apply_training_launch_rules()
     if args.pairs<1 or args.max_steps<1 or args.common_horizon_steps<1:
         parser.error('pairs and max-steps must be positive')
     metadata=read_bundle(args.candidate)

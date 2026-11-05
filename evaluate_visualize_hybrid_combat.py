@@ -1,4 +1,9 @@
-"""Evaluate viewer-configured episodes until simulator combat outcomes occur."""
+"""Evaluate viewer-configured episodes until simulator combat outcomes occur.
+
+Flight and firing both come from the selected policy. The policy's fire action is
+passed unchanged to the environment, which launches only inside the
+500 m <= range <= 1000 m, cos(ATA) > 0.95 envelope (weapon_config.py).
+"""
 
 from __future__ import annotations
 
@@ -22,7 +27,8 @@ from fighter_jet_env import DEFAULT_SIMULATION_DT
 from hybrid_ppo import HybridActorCriticPolicy
 from test_final import DETAIL_COLUMNS
 import visualize_hybrid_live as live_viewer
-from weapon_config import DEFAULT_MISSILE_LAUNCH_CEILING_M
+from weapon_config import (DEFAULT_MISSILE_LAUNCH_CEILING_M, MAX_MISSILE_LAUNCH_DISTANCE_M,
+                           MIN_MISSILE_LAUNCH_DISTANCE_M)
 
 
 ROOT = Path(__file__).resolve().parent
@@ -30,15 +36,16 @@ MODEL_PATH = live_viewer.DEFAULT_MODEL
 VECNORMALIZE_PATH = MODEL_PATH.with_name(f"{MODEL_PATH.stem}_vecnormalize.pkl")
 CONFIG_PATH = MODEL_PATH.parents[1] / "config.json"
 BUNDLE_PATH = MODEL_PATH.with_name("bundle.json")
-FIRE_RUNTIME_PINS = (
-    ROOT / "experiments/turning_improvement/fire_decision_integration_v1_20261027_01/runtime_artifacts_500m.json"
-)
-FIRE_MODEL_PATH = (
-    ROOT / "experiments/turning_improvement/fire_decision_conjunction_v1_run01/qualified_model.json"
-)
 DEFAULT_EPISODES = 1000
+# Episodes that reach this many 0.05 s steps (100 s, the training horizon)
+# without a hit, boundary exit or missile loss end as timeouts.
+MAX_EPISODE_STEPS = 2000
+LAUNCH_ENVELOPE = (f"{MIN_MISSILE_LAUNCH_DISTANCE_M:g} m <= range <= {MAX_MISSILE_LAUNCH_DISTANCE_M:g} m, "
+                   "cos(ATA) > 0.95")
 DEFAULT_BASE_SEED = 987654321
-DETERMINISTIC = live_viewer.build_parser().get_default("deterministic")
+# "deterministic": fire when p(fire) >= 0.5. "sampled": the fire bit is sampled from the
+# policy's Bernoulli (seeded per episode); flight stays at the Gaussian mean (Stage 7 only).
+FIRE_MODE = "sampled"
 
 
 def sha256(path: Path) -> str:
@@ -67,8 +74,6 @@ def input_paths() -> dict[str, Path]:
         "vecnormalize": VECNORMALIZE_PATH,
         "flight_config": CONFIG_PATH,
         "checkpoint_bundle": BUNDLE_PATH,
-        "fire_controller_runtime_pins": FIRE_RUNTIME_PINS,
-        "fire_controller_parameters": FIRE_MODEL_PATH,
     }
 
 
@@ -83,22 +88,6 @@ def verify_inputs() -> dict[str, str]:
     for name, path in ((MODEL_PATH.name, MODEL_PATH), (VECNORMALIZE_PATH.name, VECNORMALIZE_PATH)):
         if bundle_hashes.get(name) != hashes[str(path.resolve())]:
             raise ValueError(f"Checkpoint bundle does not pin the selected model/statistics pair: {path}")
-    # The firing adapter is serialized into candidate.zip; its model and all
-    # required provenance/code dependencies must still match its pinned manifest.
-    pin_data = json.loads(FIRE_RUNTIME_PINS.read_text(encoding="utf-8"))
-    if pin_data.get("schema") != "conjunction-integration-pins-v1":
-        raise ValueError("Unexpected fire-controller runtime pin manifest")
-    runtime_hashes = pin_data.get("sha256")
-    if not isinstance(runtime_hashes, dict):
-        raise ValueError("Invalid fire-controller runtime pin map")
-    for relative_path, expected in runtime_hashes.items():
-        path = ROOT / relative_path
-        if not path.is_file():
-            raise FileNotFoundError(f"Missing fire-controller runtime input: {path}")
-        actual = sha256(path)
-        if actual != expected:
-            raise ValueError(f"Fire-controller runtime input hash mismatch: {path}")
-        hashes[str(path.resolve())] = actual
     return hashes
 
 
@@ -110,8 +99,6 @@ def make_environment(stats_path: Path = VECNORMALIZE_PATH) -> VecNormalize:
         radar_range_m=2000.0,
         visible_missiles=False,
         launch_range_m=DEFAULT_MISSILE_LAUNCH_CEILING_M,
-        scripted_demo_firing=True,
-        demo_launch_distance_m=None,
         headless=True,
     )
 
@@ -124,22 +111,6 @@ def validate_model(model: PPO, environment: VecNormalize) -> None:
         raise ValueError("Viewer controller requires 19 observations and 5 actions")
     if tuple(policy.action_net.weight.shape) != (4, 64) or tuple(policy.fire_net.weight.shape) != (1, 64):
         raise ValueError("Checkpoint does not have the expected continuous-flight and fire heads")
-    adapter = getattr(policy, "fire_adapter", None)
-    if adapter is None or getattr(adapter, "mode", None) != "conjunction-v1":
-        raise ValueError("Default candidate must carry its embedded conjunction-v1 fire controller")
-    expected_fire_inputs = json.loads(FIRE_RUNTIME_PINS.read_text(encoding="utf-8")).get("sha256", {})
-    if getattr(adapter, "input_hashes", None) != expected_fire_inputs:
-        raise ValueError("Embedded fire controller does not match the pinned conjunction-v1 inputs")
-    qualified = json.loads(FIRE_MODEL_PATH.read_text(encoding="utf-8"))
-    qualified_model = qualified.get("model", {})
-    embedded_parameters = vars(adapter._model)
-    parameter_names = ("range_upper", "alignment_lower", "range_scale", "alignment_scale")
-    if (qualified_model.get("schema") != "direct-observation-conjunction-v1"
-            or qualified_model.get("input_dimension") != 19
-            or qualified_model.get("input_space") != "normalized_observation"
-            or qualified_model.get("feature_indices") != [10, 11]
-            or any(embedded_parameters.get(name) != qualified_model.get(name) for name in parameter_names)):
-        raise ValueError("Embedded conjunction-v1 parameters do not match the qualified fire model")
     if environment.observation_space != model.observation_space or environment.action_space != model.action_space:
         raise ValueError("VecNormalize spaces do not match the selected checkpoint")
     if (not environment.norm_obs or environment.norm_reward
@@ -158,6 +129,16 @@ def raw_observation(environment: VecNormalize, done: bool, info: dict[str, Any])
 def geometry(raw: np.ndarray) -> tuple[float, float, float, float]:
     dx, dy, dz = (float(value) for value in raw[7:10])
     return math.sqrt(dx * dx + dy * dy + dz * dz), math.hypot(dx, dy), abs(dz), float(raw[11])
+
+
+def fire_authority(model: PPO) -> str:
+    """Name the component that produces the policy's fire action."""
+    adapter = getattr(model.policy, "fire_adapter", None)
+    if adapter is not None and getattr(adapter, "mode", "policy") != "policy":
+        return f"embedded {adapter.mode} fire classifier (Stage 6 checkpoint)"
+    if FIRE_MODE == "sampled":
+        return "PPO Bernoulli fire head (fire bit sampled, seeded per episode; flight at Gaussian mean)"
+    return "PPO Bernoulli fire head (deterministic: fire when p >= 0.5)"
 
 
 def fire_probability(model: PPO, observation: np.ndarray) -> float:
@@ -233,7 +214,7 @@ def evaluate_episode(environment: VecNormalize, model: PPO, episode_number: int,
         probability = fire_probability(model, observation)
         if math.isnan(maximum_fire_probability) or probability > maximum_fire_probability:
             maximum_fire_probability = probability
-        action, _ = model.predict(observation, deterministic=DETERMINISTIC)
+        action, _ = model.predict(observation, deterministic=FIRE_MODE == "deterministic")
         action_values = np.asarray(action).reshape(-1)
         if action_values.shape != (5,) or action_values[4] not in (0.0, 1.0):
             raise ValueError("Hybrid policy must emit a five-element action with binary fire output")
@@ -284,6 +265,9 @@ def evaluate_episode(environment: VecNormalize, model: PPO, episode_number: int,
         if no_missile_available(raw_env):
             terminal_reason = "no_missile_available"
             break
+        if length >= MAX_EPISODE_STEPS:
+            terminal_reason = "evaluation_step_limit"
+            break
 
     result.update({
         # Success requires both the environment's missile-hit terminal event
@@ -292,7 +276,7 @@ def evaluate_episode(environment: VecNormalize, model: PPO, episode_number: int,
         "terminal_reason": terminal_reason,
         "missile_hit": hits > 0,
         "boundary_failure": "CHASE BOUNDARY" in terminal_reason.upper(),
-        "timeout": False,
+        "timeout": terminal_reason == "evaluation_step_limit",
         "episode_length_steps": length, "episode_time_seconds": elapsed, "total_reward": total_reward,
         "minimum_3d_distance_m": minimum_3d, "minimum_horizontal_distance_m": minimum_horizontal,
         "minimum_vertical_distance_m": minimum_vertical, "maximum_cosATA": maximum_cos_ata,
@@ -318,35 +302,37 @@ def termination_condition(row: dict[str, Any]) -> str:
         return "missile_wasted"
     if reason == "no_missile_available":
         return "no_missile_available"
+    if reason == "evaluation_step_limit":
+        return "timeout"
     raise ValueError(f"Unexpected evaluator terminal reason: {reason}")
 
 
 def summarize(rows: list[dict[str, Any]], base_seed: int, input_hashes: dict[str, str],
-              requested_episodes: int = DEFAULT_EPISODES) -> dict[str, Any]:
+              requested_episodes: int = DEFAULT_EPISODES, authority: str = "") -> dict[str, Any]:
     successes = sum(bool(row["success"]) for row in rows)
     return {
-        "schema": "visualize-hybrid-combat-evaluation-v5", "requested_episodes": requested_episodes,
-        "completed_episodes": len(rows), "base_seed": base_seed, "policy_mode": "deterministic",
+        "schema": "visualize-hybrid-combat-evaluation-v6", "requested_episodes": requested_episodes,
+        "completed_episodes": len(rows), "base_seed": base_seed, "policy_mode": FIRE_MODE,
         "checkpoint_path": str(MODEL_PATH.resolve()), "vecnormalize_path": str(VECNORMALIZE_PATH.resolve()),
         "flight_config_path": str(CONFIG_PATH.resolve()), "checkpoint_bundle_path": str(BUNDLE_PATH.resolve()),
-        "fire_controller_runtime_pin_path": str(FIRE_RUNTIME_PINS.resolve()),
-        "fire_controller_parameters_path": str(FIRE_MODEL_PATH.resolve()), "input_sha256": input_hashes,
+        "input_sha256": input_hashes,
         "environment": {
             "simulation_dt_seconds": DEFAULT_SIMULATION_DT, "guided_missiles": True,
             "missile_guidance": "PN + LOS acquisition", "launch_range_ceiling_m": DEFAULT_MISSILE_LAUNCH_CEILING_M,
+            "launch_envelope": LAUNCH_ENVELOPE, "max_episode_steps": MAX_EPISODE_STEPS,
             "episode_termination": {
                 "success": "environment missile_hit_this_step with missile_hit terminal reason",
                 "boundary_failure": "existing environment chase-boundary terminal reason",
                 "missile_wasted": "existing non-hit guided MissileEvent from the simulator",
                 "no_missile_available": "simulator reports no mounted missile and no active projectile",
+                "timeout": f"{MAX_EPISODE_STEPS} steps without any of the above",
             },
             "randomized_enemy_training": False,
             "spawn_mechanism": "viewer resolve_launch_configuration(seed): seed-selected REC-001..REC-006 reset scenario",
-            "enemy_controller": "JetSim.update_enemy_ai scripted patrol",
+            "enemy_controller": "JetSim.update_enemy_ai rule-based patrol",
             "patrol_waypoint_selection": {name: getattr(sim_mod, name) for name in (
                 "ENEMY_PATROL_RADIUS", "ENEMY_PATROL_VERTICAL_RADIUS", "ENEMY_PATROL_MIN_ALTITUDE", "ENEMY_PATROL_MAX_ALTITUDE")},
-            "scripted_demo_firing": True,
-            "firing_authority": "ScriptedDemoFlightEnv viewer default (500 m <= range < 600 m request window)",
+            "firing_authority": authority,
         },
         "missile_hit_successes": successes,
         "missile_hit_success_rate": successes / len(rows) if rows else None,
@@ -372,7 +358,7 @@ def save_json_atomic(path: Path, value: dict[str, Any]) -> None:
 
 
 def select_model(model_path: Path) -> None:
-    """Evaluate another flight checkpoint, e.g. experiments/flight_policy/<run-id>/final/candidate.zip."""
+    """Evaluate another checkpoint, e.g. experiments/fire_policy/<run-id>/final/candidate.zip."""
     global MODEL_PATH, VECNORMALIZE_PATH, CONFIG_PATH, BUNDLE_PATH
     MODEL_PATH = Path(model_path).resolve()
     VECNORMALIZE_PATH = MODEL_PATH.with_name(f"{MODEL_PATH.stem}_vecnormalize.pkl")
@@ -384,19 +370,18 @@ def evaluation_manifest(base_seed: int, input_hashes: dict[str, str],
                         episodes: int = DEFAULT_EPISODES) -> dict[str, Any]:
     """The exact configuration required to resume a partial evaluation."""
     return {
-        "schema": "visualize-hybrid-combat-evaluation-v5",
+        "schema": "visualize-hybrid-combat-evaluation-v6",
         "requested_episodes": episodes, "base_seed": base_seed,
         "episode_seeds_path": "seed_list.json",
         "model_path": str(MODEL_PATH.resolve()), "vecnormalize_path": str(VECNORMALIZE_PATH.resolve()),
         "flight_config_path": str(CONFIG_PATH.resolve()), "checkpoint_bundle_path": str(BUNDLE_PATH.resolve()),
-        "fire_controller_runtime_pin_path": str(FIRE_RUNTIME_PINS.resolve()),
-        "fire_controller_parameters_path": str(FIRE_MODEL_PATH.resolve()),
         "input_sha256": input_hashes, "detail_columns": DETAIL_COLUMNS,
-        "policy_mode": "deterministic",
-        "environment": {"randomized_enemy_training": False, "scripted_demo_firing": True,
+        "policy_mode": FIRE_MODE,
+        "environment": {"randomized_enemy_training": False, "firing": "policy fire action, unchanged",
                         "guided_missiles": True, "launch_range_ceiling_m": DEFAULT_MISSILE_LAUNCH_CEILING_M,
+                        "launch_envelope": LAUNCH_ENVELOPE, "max_episode_steps": MAX_EPISODE_STEPS,
                         "simulation_dt_seconds": DEFAULT_SIMULATION_DT,
-                        "episode_termination": "environment missile hit, chase boundary, non-hit guided MissileEvent, or no mounted/active missile",
+                        "episode_termination": "environment missile hit, chase boundary, non-hit guided MissileEvent, no mounted/active missile, or step limit",
                         "scenario_selection": "resolve_launch_configuration(None, episode_seed, None)"},
     }
 
@@ -463,14 +448,14 @@ def run(output: Path, episodes: int = DEFAULT_EPISODES, base_seed: int = DEFAULT
     print(f"VecNormalize statistics loaded: {VECNORMALIZE_PATH.resolve()}")
     print(f"Flight configuration loaded: {CONFIG_PATH.resolve()}")
     print(f"Checkpoint bundle loaded: {BUNDLE_PATH.resolve()}")
-    print(f"Fire controller parameters verified against: {FIRE_MODEL_PATH.resolve()}")
-    print(f"Fire controller runtime pins: {FIRE_RUNTIME_PINS.resolve()}")
-    print("Viewer firing authority: ScriptedDemoFlightEnv default 500 m <= range < 600 m request window")
-    print("Episode termination: missile hit, chase boundary, simulator missile-waste event, or no remaining missile")
+    print(f"Launch envelope: {LAUNCH_ENVELOPE}")
+    print(f"Episode termination: missile hit, chase boundary, simulator missile-waste event, "
+          f"no remaining missile, or {MAX_EPISODE_STEPS} steps")
     print(f"{'Resuming' if resumed else 'Writing'} {episodes} episode rows at: {detail_path.resolve()}")
     print(f"Completed rows already present: {len(rows)}")
 
     environment: VecNormalize | None = None
+    authority = ""
     if len(rows) == episodes:
         summary = summarize(rows, base_seed, input_hashes, episodes)
         summary["run_status"] = "completed"
@@ -484,6 +469,10 @@ def run(output: Path, episodes: int = DEFAULT_EPISODES, base_seed: int = DEFAULT
         environment = make_environment(VECNORMALIZE_PATH)
         model = PPO.load(str(MODEL_PATH), env=environment, device="cpu")
         validate_model(model, environment)
+        if FIRE_MODE == "sampled" and getattr(model.policy, "train_flight", True):
+            raise ValueError("--fire-mode sampled needs a Stage 7 policy with frozen, mean-flown flight")
+        authority = fire_authority(model)
+        print(f"Fire authority: {authority}")
         with detail_path.open("a", newline="", encoding="utf-8") as stream:
             writer = csv.DictWriter(stream, fieldnames=DETAIL_COLUMNS, extrasaction="raise")
             if not resumed:
@@ -496,12 +485,12 @@ def run(output: Path, episodes: int = DEFAULT_EPISODES, base_seed: int = DEFAULT
                 rows.append(row)
                 if episode_number == 1 or episode_number % 10 == 0 or episode_number == episodes:
                     print(f"Episode {episode_number}/{episodes}: {row['terminal_reason']}", flush=True)
-                progress = summarize(rows, base_seed, input_hashes, episodes)
+                progress = summarize(rows, base_seed, input_hashes, episodes, authority)
                 progress["run_status"] = "in_progress"
                 save_json_atomic(output / "progress.json", progress)
                 save_json_atomic(summary_path, progress)
     except BaseException as exc:
-        partial = summarize(rows, base_seed, input_hashes, episodes)
+        partial = summarize(rows, base_seed, input_hashes, episodes, authority)
         partial["run_status"] = "interrupted_or_failed"
         partial["error_type"] = type(exc).__name__
         partial["error_message"] = str(exc)
@@ -514,7 +503,7 @@ def run(output: Path, episodes: int = DEFAULT_EPISODES, base_seed: int = DEFAULT
                 raw_env.sim.destroy()
             finally:
                 environment.close()
-    summary = summarize(rows, base_seed, input_hashes, episodes)
+    summary = summarize(rows, base_seed, input_hashes, episodes, authority)
     summary["run_status"] = "completed"
     save_json_atomic(summary_path, summary)
     print(f"Completed {len(rows)}/{episodes} episodes. Summary: {summary_path.resolve()}")
@@ -536,14 +525,18 @@ def nonnegative_int(value: str) -> int:
 
 
 def main(argv: list[str] | None = None) -> None:
+    global FIRE_MODE
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True, help="New output directory")
     parser.add_argument("--base-seed", type=nonnegative_int, default=DEFAULT_BASE_SEED)
     parser.add_argument("--model-path", type=Path, default=MODEL_PATH,
-                        help="Flight checkpoint (candidate.zip) inside a Stage 6 run; default: the final model")
+                        help="Checkpoint (candidate.zip) inside a Stage 6/7 run; default: the Stage 7 final model")
     parser.add_argument("--episodes", type=positive_int, default=DEFAULT_EPISODES,
                         help="Run only the first N of the 1,000 seeded episodes (quick check)")
+    parser.add_argument("--fire-mode", choices=("deterministic", "sampled"), default=FIRE_MODE,
+                        help="sampled (default): sample the learned fire decision, seeded per episode; deterministic: fire only when p >= 0.5")
     args = parser.parse_args(argv)
+    FIRE_MODE = args.fire_mode
     select_model(args.model_path)
     run(args.output, args.episodes, args.base_seed)
 

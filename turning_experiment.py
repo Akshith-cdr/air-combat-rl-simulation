@@ -72,8 +72,9 @@ class ExperimentConfig:
             raise ValueError('normalization/guidance flags must be booleans')
         if not self.player_headings or any(not math.isfinite(h) or not 0<=h<360 for h in self.player_headings):
             raise ValueError('player_headings must contain finite headings in [0,360)')
-        if not math.isfinite(self.launch_range_m) or self.launch_range_m != 100:
-            raise ValueError('This turning experiment preserves the 100 m launch gate')
+        # 100 m: historical Stage 5/6 gate. 1000 m: Stage 7 launch envelope ceiling.
+        if not math.isfinite(self.launch_range_m) or self.launch_range_m not in (100.0, 1000.0):
+            raise ValueError('launch_range_m must be the 100 m Stage 5/6 gate or the 1000 m Stage 7 ceiling')
         if not isinstance(self.device,str) or (self.device not in ('cpu','cuda') and
                 not (self.device.startswith('cuda:') and self.device[5:].isdigit())):
             raise ValueError('device must be cpu, cuda or cuda:N')

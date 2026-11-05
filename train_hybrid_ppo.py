@@ -6,7 +6,8 @@ from pathlib import Path
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 
-from fighter_jet_env import FighterJetEnv
+from fighter_jet_env import DEFAULT_SIMULATION_DT, FIRE_RANGE_GATE, FighterJetEnv
+from training_rules import TRAINING_LAUNCH_CEILING_M, apply_training_launch_rules
 from hybrid_ppo import HybridActorCriticPolicy
 
 
@@ -26,13 +27,16 @@ def normalization_path(model_path: Path) -> Path:
     return model_path.with_name(f"{model_path.stem}_vecnormalize.pkl")
 
 
-def make_hybrid_training_env(stats_path: Path):
+def make_hybrid_training_env(stats_path: Path, fire_range_gate: float):
     """Load observation statistics without retaining legacy action-space metadata."""
     vector_env = DummyVecEnv(
         [
             lambda: FighterJetEnv(
                 randomized_enemy_training=True,
                 hybrid_fire=True,
+                fire_range_gate=fire_range_gate,
+                simulation_dt=DEFAULT_SIMULATION_DT,
+                launch_range_gate=TRAINING_LAUNCH_CEILING_M,
             )
         ]
     )
@@ -50,6 +54,7 @@ def train(
     init_model_path: Path,
     init_stats_path: Path,
     output_model_path: Path,
+    fire_range_gate: float = FIRE_RANGE_GATE,
 ) -> None:
     if timesteps <= 0:
         raise ValueError("--timesteps must be positive")
@@ -68,7 +73,7 @@ def train(
             f"{output_model_path} or {output_stats_path}"
         )
 
-    env = make_hybrid_training_env(init_stats_path)
+    env = make_hybrid_training_env(init_stats_path, fire_range_gate)
     try:
         if env.observation_space.shape != (19,) or env.action_space.shape != (5,):
             raise ValueError("Hybrid training requires 19 observations and 5 actions")
@@ -89,6 +94,8 @@ def train(
         )
         if not isinstance(model.policy, HybridActorCriticPolicy):
             raise TypeError("Initialization checkpoint is not a hybrid PPO policy")
+        model.simulation_dt_seconds = DEFAULT_SIMULATION_DT
+        print(f"Simulation timestep: {DEFAULT_SIMULATION_DT} s (fixed; historical timing may differ)")
         model.learn(total_timesteps=timesteps)
         output_model_path.parent.mkdir(parents=True, exist_ok=True)
         model.save(str(output_model_path))
@@ -99,6 +106,7 @@ def train(
 
     print(f"Saved trained hybrid model: {output_model_path}")
     print(f"Saved matching VecNormalize statistics: {output_stats_path}")
+    print(f"Training fire-range gate: {fire_range_gate:.1f} m")
 
 
 if __name__ == "__main__":
@@ -107,10 +115,18 @@ if __name__ == "__main__":
     parser.add_argument("--init-model", type=Path, default=DEFAULT_INIT_MODEL)
     parser.add_argument("--init-vecnormalize", type=Path, default=DEFAULT_INIT_STATS)
     parser.add_argument("--output-model", type=Path, default=DEFAULT_OUTPUT_MODEL)
+    parser.add_argument(
+        "--fire-range-gate",
+        type=float,
+        default=FIRE_RANGE_GATE,
+        help="Training-only valid-fire range in metres (final evaluation uses 100 m).",
+    )
     arguments = parser.parse_args()
+    apply_training_launch_rules()
     train(
         arguments.timesteps,
         arguments.init_model,
         arguments.init_vecnormalize,
         arguments.output_model,
+        arguments.fire_range_gate,
     )

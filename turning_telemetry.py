@@ -68,6 +68,9 @@ class _NumberProbe(float):
     def __gt__(self, other):
         return self._compare(other, float(self) > other)
 
+    def __le__(self, other):
+        return self._compare(other, float(self) <= other)
+
     def __ge__(self, other):
         self.checks.append({'prerequisite': 'range_at_or_above_minimum',
                             'satisfied': float(self) >= other,

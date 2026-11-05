@@ -13,7 +13,7 @@ import time
 from panda3d.core import (
     CardMaker, ColorBlendAttrib, NodePath, PNMImage, PointLight, Texture,
     TransparencyAttrib, Vec3, Geom, GeomNode, GeomTriangles,
-    GeomVertexData, GeomVertexFormat, GeomVertexWriter,
+    GeomVertexData, GeomVertexFormat, GeomVertexWriter, ColorWriteAttrib,
 )
 
 
@@ -29,6 +29,86 @@ class Particle:
     color: tuple
     kind: str
     spin: float
+
+
+class SimpleMissilePresentation:
+    """Cached original missile model; numerical placement and no camera writes.
+
+    The caller supplies the project's asset with its material, scale and +Z-to-Y
+    model correction already applied. Scene lighting/depth remain conventional.
+    No particle systems, new paint, screen-size scaling or asset loads in flight.
+    """
+
+    def __init__(self, parent, prototype):
+        if prototype is None or prototype.isEmpty():
+            raise ValueError("Original missile presentation model is required")
+        self.root = parent.attachNewNode("simple_missile_visuals")
+        self.prototype = prototype
+        self.resources_prepared = False
+        self.visuals = {}
+        self.previous = {}
+        self.current = {}
+
+    def prepare_resources(self, camera, draw_frame):
+        """Compile/cache model resources before physics, without visible pixels.
+
+        A temporary in-frustum copy writes neither color nor depth. It is not a
+        numerical missile or radar contact and is removed before playback.
+        """
+        if self.resources_prepared:
+            return
+        staging = self.root.attachNewNode("missile_resource_warmup")
+        staging.setAttrib(ColorWriteAttrib.make(ColorWriteAttrib.COff), 100)
+        staging.setDepthWrite(False, 100)
+        staging.setDepthTest(False, 100)
+        staging.setPos(camera.getPos(self.root) + camera.getQuat(self.root).getForward() * 20)
+        self.prototype.copyTo(staging)
+        try:
+            draw_frame()
+            draw_frame()
+            self.resources_prepared = True
+        finally:
+            staging.removeNode()
+
+    def before_step(self, active):
+        self.previous = {s["missile_id"]: tuple(s["position"]) for s in active}
+
+    def sync(self, active):
+        states = {s["missile_id"]: s for s in active}
+        for identity in self.visuals.keys() - states.keys():
+            self.visuals.pop(identity).removeNode()
+        self.current = {}
+        for identity, state in states.items():
+            if identity not in self.visuals:
+                node = self.root.attachNewNode(identity)
+                self.prototype.copyTo(node)
+                self.visuals[identity] = node
+            self.previous.setdefault(identity, tuple(state["spawn_pos"]))
+            self.current[identity] = (tuple(state["position"]), tuple(state["velocity"]))
+        self.draw(1.0)
+
+    def draw(self, alpha=1.0, view=None):
+        alpha = max(0.0, min(1.0, float(alpha)))
+        for identity, (position, velocity) in self.current.items():
+            previous = Vec3(*self.previous.get(identity, position))
+            position = previous * (1 - alpha) + Vec3(*position) * alpha
+            node = self.visuals[identity]
+            node.setPos(position)
+            direction = Vec3(*velocity)
+            if direction.lengthSquared() > 1e-12:
+                node.lookAt(position + direction)
+
+    def reset(self):
+        for node in self.visuals.values():
+            node.removeNode()
+        self.visuals.clear()
+        self.previous.clear()
+        self.current.clear()
+
+    def destroy(self):
+        self.reset()
+        self.prototype.removeNode()
+        self.root.removeNode()
 
 
 def _noise(u, v, frequency):
@@ -89,10 +169,13 @@ class MissileVFX:
     BLAST_DURATION = 4.0
     MAX_PARTICLES = 420
 
-    def __init__(self, sim, cinematic=True, slowmo=8.0):
+    def __init__(self, sim, cinematic=True, slowmo=8.0, presentation_model=None):
         self.sim = sim
         self.cinematic = bool(cinematic)
         self.slowmo = max(1.0, float(slowmo))
+        # Optional owned, cached asset: its child already maps model +Z to +Y.
+        # Legacy callers keep copying the original numerical projectile node.
+        self.presentation_model = presentation_model
         self.rng = random.Random(73019)  # Never consume the enemy/policy RNG.
         self.root = sim.render.attachNewNode("missile_vfx")
         self.root.setLightOff(1)
@@ -105,6 +188,7 @@ class MissileVFX:
         self.debris_mesh = self._debris_mesh()
         self.particles = []
         self.flight = None
+        self.other_flights = []
         self.impact = None
         self.impact_age = 0.0
         self.blast_light = None
@@ -185,9 +269,16 @@ class MissileVFX:
 
     def on_launch(self, state):
         """Keep the physics projectile and use its copy for smooth rendering."""
+        if not hasattr(self, "other_flights"):
+            self.other_flights = []
         if self.flight is not None:
-            self._clear_flight()
-        body = state["node"].copyTo(self.root)
+            self.other_flights.append(self.flight)
+        prototype = getattr(self, "presentation_model", None)
+        if prototype is None:
+            body = state["node"].copyTo(self.root)
+        else:
+            body = self.root.attachNewNode("missile_tracking_container")
+            prototype.copyTo(body)
         body.setName("missile_presentation_body")
         body.show()
         body.setLightOff(1)
@@ -211,15 +302,40 @@ class MissileVFX:
         self.launch_count += 1
 
     def on_motion(self, state):
-        if self.flight is not None and self.flight["state"] is state:
-            self.flight["current"] = Vec3(state["node"].getPos(self.sim.render))
+        for flight in self._all_flights():
+            if flight["state"] is state:
+                flight["current"] = Vec3(state.get("position", state["node"].getPos(self.sim.render)))
+                direction = Vec3(state["velocity"])
+                if direction.lengthSquared() > 1e-12:
+                    direction.normalize()
+                    flight["direction"] = direction
 
     def on_remove(self, state, hit=False):
-        if self.flight is not None and self.flight["state"] is state:
-            self.on_motion(state)
-            self.flight["ended"] = True
-            self.flight["hit"] = bool(hit)
-            self.flight["target"] = Vec3(self.sim.enemy.position)
+        self.on_motion(state)
+        for flight in self._all_flights():
+            if flight["state"] is state:
+                flight["ended"] = True
+                flight["hit"] = bool(hit)
+                target = self.sim.player if state.get("target_id") == "player" else self.sim.enemy
+                flight["target_actor"] = target
+                event = state.get("guided")
+                terminal = event.terminal if event is not None else None
+                flight["target"] = Vec3(*(terminal.target_position if terminal and terminal.target_position
+                                           else tuple(target.position)))
+
+    def _all_flights(self):
+        return list(getattr(self, "other_flights", [])) + ([self.flight] if self.flight else [])
+
+    def _draw_flights(self, alpha, dt):
+        primary, cinematic = self.flight, getattr(self, "cinematic", False)
+        try:
+            for flight in self._all_flights():
+                self.flight = flight
+                self.cinematic = cinematic and flight is primary
+                position = flight["previous"] * (1 - alpha) + flight["current"] * alpha
+                self._flight_frame(position, dt)
+        finally:
+            self.flight, self.cinematic = primary, cinematic
 
     def before_step(self):
         self.actor_samples = [
@@ -248,6 +364,10 @@ class MissileVFX:
             f["launch_pending"] = False
         f["age"] += dt
         f["body"].setPos(position)
+        if f["direction"].lengthSquared() > 1e-12:
+            f["body"].lookAt(position + f["direction"])
+            if getattr(self, "presentation_model", None) is None:
+                f["body"].setP(f["body"].getP() - 90)
         # The original AIM-9 is ~11 world metres long. Its origin sits near
         # the centre; the engine plume starts behind it along its actual travel.
         nozzle = position - f["direction"] * 5.3
@@ -275,7 +395,9 @@ class MissileVFX:
             self._flight_camera(position, f["direction"])
 
     def _flight_camera(self, position, direction):
-        target = self.sim.enemy.root.getPos(self.sim.render)
+        actor = (self.sim.player if self.flight["state"].get("target_id") == "player"
+                 else self.sim.enemy)
+        target = actor.root.getPos(self.sim.render)
         centre = position * 0.5 + target * 0.5
         side = direction.cross(Vec3(0, 0, 1))
         if side.lengthSquared() < 0.01:
@@ -288,7 +410,12 @@ class MissileVFX:
         self.sim.camera.setPos(camera)
         self.sim.camera.lookAt(centre)
 
-    def _blast(self, position):
+    def _blast(self, position, actor=None):
+        # Smoke/debris may overlap; the newest impact owns the flash and camera.
+        for node in (self.flash, self.shockwave):
+            if node is not None:
+                node.removeNode()
+        self._remove_light(self.blast_light)
         self.impact = Vec3(position)
         self.impact_age = 0.0
         self.blast_count += 1
@@ -317,7 +444,7 @@ class MissileVFX:
                            self.rng.uniform(9, 30), self.rng.uniform(2, 3.8),
                            self.rng.uniform(0.3, 0.9), 0, (1, 0.48, 0.12, 1))
         # A visual destruction cue; reset restores the intact aircraft.
-        self.sim.enemy.visual_root.hide()
+        (actor or self.sim.enemy).visual_root.hide()
         if self.cinematic:
             self.impact_camera = Vec3(self.sim.camera.getPos(self.sim.render))
             if (self.impact_camera - position).length() < 55:
@@ -390,13 +517,19 @@ class MissileVFX:
             self.sim.camera.lookAt(self.impact + Vec3(0, 0, min(5, age * 2)))
 
     def _finish_segment(self):
-        f = self.flight
-        if f is not None and f["ended"]:
-            if f["hit"]:
-                self._blast(f["target"])
-            self._clear_flight()
-        elif f is not None:
-            f["previous"] = Vec3(f["current"])
+        flights = self._all_flights()
+        kept = []
+        for f in flights:
+            self.flight = f
+            if f["ended"]:
+                if f["hit"]:
+                    self._blast(f["target"], f.get("target_actor"))
+                self._clear_flight()
+            else:
+                f["previous"] = Vec3(f["current"])
+                kept.append(f)
+        self.flight = kept[-1] if kept else None
+        self.other_flights = kept[:-1]
 
     def render_step(self, physics_dt, frame_delay):
         """Render real sample-to-sample motion in slow motion during the shot.
@@ -428,8 +561,7 @@ class MissileVFX:
                     node.setQuat(interpolated)
                 self.advance(visual_dt)
                 if f is not None:
-                    position = f["previous"] * (1 - alpha) + f["current"] * alpha
-                    self._flight_frame(position, visual_dt)
+                    self._draw_flights(alpha, visual_dt)
                 self._render_frame()
                 if frame_delay > 0:
                     time.sleep(delay)
@@ -438,6 +570,29 @@ class MissileVFX:
             for node, _, _, transform in actor_ends:
                 node.setTransform(transform)
             self.actor_samples = None
+
+    def sample_frame(self, alpha, visual_dt, finish_segment=False):
+        """Sample effects in an externally paced viewer; no render, sleep or physics.
+
+        The caller owns aircraft interpolation and invokes this AFTER its camera
+        update. Finish a segment only at its last sample, including hit/expiry.
+        """
+        if not math.isfinite(visual_dt) or visual_dt < 0:
+            raise ValueError("visual_dt must be finite and non-negative")
+        # advance() bounds integration to .1 s; consume all elapsed visual time.
+        remaining = visual_dt
+        while remaining > 0:
+            part = min(.1, remaining)
+            self.advance(part)
+            remaining = max(0.0, remaining - part)
+        if visual_dt == 0:
+            self.advance(0)
+        self._draw_flights(max(0.0, min(1.0, alpha)), visual_dt)
+        if finish_segment:
+            self._finish_segment()
+            # A real hit creates its blast at segment completion. Set the impact
+            # camera now so the terminal frame already shows the explosion.
+            self.advance(0)
 
     def _render_frame(self):
         # Pump OS events without taskMgr.step(), which would advance physics twice.
@@ -450,7 +605,7 @@ class MissileVFX:
         """Standalone manual JetSim uses the same effects at normal speed."""
         self.advance(dt)
         if self.flight is not None:
-            self._flight_frame(self.flight["current"], dt)
+            self._draw_flights(1.0, dt)
         self._finish_segment()
 
     def hold(self, seconds, frame_delay):
@@ -466,7 +621,10 @@ class MissileVFX:
             time.sleep(frame_delay if frame_delay > 0 else 1 / 60)
 
     def reset(self):
-        self._clear_flight()
+        for flight in self._all_flights():
+            self.flight = flight
+            self._clear_flight()
+        self.other_flights = []
         for p in self.particles:
             p.node.removeNode()
         self.particles.clear()
@@ -479,7 +637,12 @@ class MissileVFX:
         self.impact_age = 0.0
         self.actor_samples = None
         self.sim.enemy.visual_root.show()
+        self.sim.player.visual_root.show()
 
     def destroy(self):
         self.reset()
         self.root.removeNode()
+        prototype = getattr(self, "presentation_model", None)
+        if prototype is not None:
+            prototype.removeNode()
+            self.presentation_model = None
