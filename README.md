@@ -1,3 +1,18 @@
+# Learning Pursuit Control for Missile Launch Positioning with PPO
+
+**Current work (paper revision after review):** the paper is in [`paper/main.pdf`](paper/main.pdf)
+and its pipeline is the [`pursuit/`](pursuit/) package (PPO trained from scratch with 5 seeds,
+pure- and lead-pursuit baselines, 1,000-episode and all-round test suites, failure analysis).
+The reported results were trained at commit `b5c8a49` and evaluated at commit `85731ef`;
+check out `85731ef` and follow the paper's appendix to reproduce them. Later commits contain
+follow-up fixes (target patrol steering, potential-based reward shaping) that change the
+target's behaviour.
+
+The rest of this file describes the **earlier** development stages (1–7) and is kept for
+reference; the paper does not use them.
+
+---
+
 # UCAV Reinforcement Learning Project
 
 An autonomous fighter aircraft (UCAV) learns, with PPO, to pursue and engage a manoeuvring
