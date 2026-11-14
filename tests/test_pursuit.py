@@ -122,6 +122,29 @@ class Episodes(unittest.TestCase):
         self.assertEqual(len(self.env.trajectory), info["episode_summary"]["steps"] + 1)
         self.assertIn("m_x", self.env.trajectory[-1])
 
+    def test_lead_pursuit_aims_at_target_inside_band(self):
+        lead = PursuitController(lead=True)
+        p, vp, vt = np.zeros(3), np.array([0.0, 200.0, 0.0]), np.array([190.0, 0.0, 0.0])
+        far, near = np.array([0.0, 3000.0, 0.0]), np.array([0.0, 900.0, 0.0])
+        self.assertFalse(np.allclose(lead.aim_point(p, vp, far, vt), far))   # leads when far
+        np.testing.assert_allclose(lead.aim_point(p, vp, near, vt), near)    # pure inside band
+
+    def test_target_patrol_steers_to_waypoint(self):
+        # A fixed waypoint 1 km to the target's left must be approached, not circled.
+        self.env.reset(options={"scenario": scenario()})
+        enemy = self.env.sim.enemy
+        self.assertTrue(self.env.sim.correct_enemy_heading)
+        heading = math.radians(-enemy.yaw)                     # compass heading
+        left = np.array([-math.cos(heading), math.sin(heading), 0.0])
+        waypoint = np.array(enemy.position) + 1000.0 * left
+        enemy.ai_waypoint = type(enemy.position)(*waypoint)
+        enemy.ai_update_timer = 1e9                            # no new waypoint
+        start = np.linalg.norm(waypoint - np.array(enemy.position))
+        for _ in range(100):                                   # 5 s
+            self.env.sim.update_enemy_ai(C.SIMULATION_DT)
+            self.env.sim.update_actor_physics(enemy, C.SIMULATION_DT)
+        self.assertLess(np.linalg.norm(waypoint - np.array(enemy.position)), 0.6 * start)
+
 
 if __name__ == "__main__":
     unittest.main()

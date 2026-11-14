@@ -99,6 +99,9 @@ class PursuitEnv(FighterJetEnv):
                          simulation_dt=C.SIMULATION_DT, launch_range_gate=C.BAND_MAX_M)
         self._simulator_action_space = self.action_space
         self.action_space = gym.spaces.Box(-1.0, 1.0, shape=(4,), dtype=np.float32)
+        # The target patrol steers with a consistent heading convention (see
+        # JetSim.update_enemy_ai). Set before any episode is used.
+        self.sim.correct_enemy_heading = C.TARGET_PATROL_CORRECT_HEADING
 
     # ------------------------------------------------------------------ reset
     def reset(self, *, seed=None, options=None):

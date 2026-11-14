@@ -18,6 +18,7 @@ Writes
                        missile closest approach and when it happened
   failure_summary.csv  counts per controller and category
   aspect_table.csv     launches, hits and hit rate per launch-aspect bin per controller
+  collision_sensitivity.csv  episodes closer than 10/15/20/30 m to the target, per run
 """
 
 import argparse
@@ -124,7 +125,28 @@ def analyse(evals, out):
             rows.append({"controller": group, "suite": suite, "launch_aspect": label, "launches": launches,
                          "hits": hits, "hit_rate": hits / launches if launches else ""})
     write(out / "aspect_table.csv", rows)
+    write(out / "collision_sensitivity.csv", collision_sensitivity(evals))
     return failures
+
+
+SENSITIVITY_RADII_M = (10, 15, 20, 30)
+
+
+def collision_sensitivity(evals):
+    """Episodes whose closest aircraft-target distance falls below each radius.
+
+    Only 10 m ends an episode in the simulator; the larger radii show how the
+    collision count would change with a larger (more realistic) aircraft size.
+    """
+    rows = []
+    for directory in sorted(Path(evals).iterdir()):
+        if not (directory / "episodes.csv").exists():
+            continue
+        episodes = read_csv(directory / "episodes.csv")
+        distances = [num(e["min_distance_m"]) for e in episodes]
+        rows.append({"run": directory.name, "episodes": len(episodes),
+                     **{f"below_{r}m": sum(d < r for d in distances) for r in SENSITIVITY_RADII_M}})
+    return rows
 
 
 def write(path, rows):

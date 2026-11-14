@@ -34,7 +34,8 @@ def make_controller(spec):
     from pursuit import baselines
     if spec["controller"] == "ppo":
         return baselines.PPOController(spec["model"])
-    return baselines.make(spec["controller"])
+    gains = baselines.Gains(**spec["gains"]) if spec.get("gains") else None
+    return baselines.make(spec["controller"], gains)
 
 
 def run_chunk(spec, chunk):
@@ -51,7 +52,7 @@ def run_chunk(spec, chunk):
                 obs, _, terminated, truncated, info = env.step(controller.act(env, obs))
                 done = terminated or truncated
             row = {**scenario.as_dict(), **info["episode_summary"]}
-            if not row["success"]:
+            if not row["success"] and spec.get("save_failures", True):
                 write_rows(Path(spec["out"]) / "failures" / f"{scenario.scenario_id}_{scenario.seed}.csv",
                            env.trajectory)
             rows.append(row)
@@ -137,8 +138,13 @@ def main(argv=None):
     if args.model:
         inputs = {name: provenance.sha256(Path(args.model) / name)
                   for name in ("model.zip", "vecnormalize.pkl", "policy_numpy.npz")}
+    gains = None
+    if args.controller != "ppo":
+        from dataclasses import asdict
+        from pursuit.baselines import load_gains
+        gains = asdict(load_gains(args.controller))
     provenance.write_json(args.out / "summary.json", {
-        "controller": args.controller, "model": args.model, "model_sha256": inputs,
+        "controller": args.controller, "model": args.model, "model_sha256": inputs, "baseline_gains": gains,
         "suite": args.suite, "reportable": not prov["git"]["dirty"], "provenance": prov, **summary})
     print(f"{args.controller} on {args.suite}: {summary['hits']}/{summary['episodes']} hits "
           f"({100 * summary['hit_rate']:.1f}%, 95% CI {100 * summary['ci95'][0]:.1f}-"

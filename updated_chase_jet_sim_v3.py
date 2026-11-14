@@ -1123,7 +1123,14 @@ class JetSim(ShowBase):
             to_waypoint = Vec3(0, 1, 0)
 
         desired_dir = to_waypoint.normalized()
-        desired_heading = math.degrees(math.atan2(desired_dir.x, desired_dir.y)) % 360
+        if getattr(self, "correct_enemy_heading", False):
+            # Panda3D yaw (e.yaw) is counter-clockwise: forward = (-sin yaw, cos yaw).
+            # Express the desired heading the same way so the error below is meaningful.
+            desired_heading = math.degrees(math.atan2(-desired_dir.x, desired_dir.y)) % 360
+        else:
+            # Historical behaviour, kept so Stages 1-7 reproduce: a clockwise (compass)
+            # heading compared with the counter-clockwise yaw, which mis-steers the target.
+            desired_heading = math.degrees(math.atan2(desired_dir.x, desired_dir.y)) % 360
         horizontal_len = math.sqrt(desired_dir.x ** 2 + desired_dir.y ** 2)
         desired_pitch = math.degrees(math.atan2(desired_dir.z, max(1e-6, horizontal_len)))
 

@@ -10,6 +10,8 @@ Writes
   learning_curves.png / .csv    dev hit rate vs. steps: each seed, mean and min-max
   comparison.csv                hit rate, CI, launch time/range, collisions per controller
   sectors.csv                   hit rate per bearing sector per controller (sweep suite)
+  paired_tests.csv              exact McNemar test, each PPO seed vs each baseline, same episodes
+  sweep_curves.csv              full-sweep hit rate vs. steps (from pursuit.sweep_curves)
 """
 
 import argparse
@@ -91,15 +93,68 @@ def comparison(evals, out):
                 writer.writerow([sector, *(sectors[sector].get(n, "") for n in names)])
 
 
+def mcnemar_p(b, c):
+    """Exact two-sided McNemar test on the discordant pairs b, c."""
+    from math import comb
+    n, k = b + c, min(b, c)
+    return 1.0 if n == 0 else min(1.0, 2 * sum(comb(n, i) for i in range(k + 1)) / 2 ** n)
+
+
+def paired_tests(evals, out):
+    """PPO seed vs baseline on identical episodes (same scenario and seed).
+
+    ppo_only = episodes PPO hit and the baseline missed; base_only = the reverse.
+    """
+    rows = []
+    for suite in ("reviewed_six", "sweep"):
+        for baseline in ("lead_pursuit", "pure_pursuit"):
+            base_path = Path(evals) / f"{baseline}_{suite}" / "episodes.csv"
+            if not base_path.exists():
+                continue
+            base = {(e["scenario_id"], e["seed"]): e["success"] == "True" for e in read_csv(base_path)}
+            for path in sorted(Path(evals).glob(f"ppo_seed*_{suite}/episodes.csv")):
+                ppo = {(e["scenario_id"], e["seed"]): e["success"] == "True" for e in read_csv(path)}
+                if set(ppo) != set(base):
+                    raise ValueError(f"{path} and {base_path} do not contain the same episodes")
+                ppo_only = sum(ppo[k] and not base[k] for k in ppo)
+                base_only = sum(base[k] and not ppo[k] for k in ppo)
+                rows.append({"suite": suite, "baseline": baseline, "ppo_run": path.parent.name,
+                             "episodes": len(ppo), "ppo_only_hits": ppo_only, "baseline_only_hits": base_only,
+                             "mcnemar_p": mcnemar_p(ppo_only, base_only)})
+    if rows:
+        with open(out / "paired_tests.csv", "w", newline="") as handle:
+            writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+            writer.writeheader()
+            writer.writerows(rows)
+
+
+def sweep_curves(evals, out):
+    """Mean / min / max over seeds of the full-sweep learning curves."""
+    files = sorted((Path(evals) / "curves").glob("seed*.csv"))
+    if not files:
+        return
+    curves = {f.stem: {int(r["timesteps"]): float(r["hit_rate"]) for r in read_csv(f)} for f in files}
+    steps = sorted(set.intersection(*(set(c) for c in curves.values())))
+    table = [{"timesteps": s, "mean": st.mean(c[s] for c in curves.values()),
+              "min": min(c[s] for c in curves.values()), "max": max(c[s] for c in curves.values()),
+              **{name: c[s] for name, c in curves.items()}} for s in steps]
+    with open(out / "sweep_curves.csv", "w", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(table[0]))
+        writer.writeheader()
+        writer.writerows(table)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--runs", type=Path, default=Path("runs/train"))
-    parser.add_argument("--evals", type=Path, default=Path("runs/eval"))
-    parser.add_argument("--out", type=Path, default=Path("runs/report"))
+    parser.add_argument("--runs", type=Path, default=Path("runs/final/train"))
+    parser.add_argument("--evals", type=Path, default=Path("runs/final/eval"))
+    parser.add_argument("--out", type=Path, default=Path("runs/final/report"))
     args = parser.parse_args(argv)
     args.out.mkdir(parents=True, exist_ok=True)
     learning_curves(args.runs, args.out)
     comparison(args.evals, args.out)
+    paired_tests(args.evals, args.out)
+    sweep_curves(args.evals, args.out)
     print(f"wrote {args.out}")
 
 

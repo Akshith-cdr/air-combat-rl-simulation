@@ -151,7 +151,14 @@ def development_suite():
     return [s for s in sweep_suite(base_seed=777001, repeats=1) if s.range_m == 3000.0]
 
 
-SUITES = {"reviewed_six": reviewed_six_suite, "sweep": sweep_suite, "dev": development_suite}
+def tuning_suite():
+    """Baseline-gain tuning set: the sweep's geometries (all 3 ranges) with 2 new
+    seed repeats (288 episodes). Seeds differ from the sweep and dev suites."""
+    return sweep_suite(base_seed=31337001, repeats=2)
+
+
+SUITES = {"reviewed_six": reviewed_six_suite, "sweep": sweep_suite, "dev": development_suite,
+          "tune": tuning_suite}
 
 
 def suite(name):

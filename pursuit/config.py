@@ -15,6 +15,11 @@ BAND_MIN_M = float(MIN_MISSILE_LAUNCH_DISTANCE_M)   # 500 m, inclusive
 BAND_MAX_M = float(MAX_MISSILE_LAUNCH_DISTANCE_M)   # 1000 m, inclusive
 COS_ATA_GATE = 0.95             # aircraft velocity within ~18.2 deg of the line of sight
 
+# --- Target ------------------------------------------------------------------
+# The legacy patrol compared a clockwise desired heading with the counter-clockwise
+# yaw, so the target wandered instead of flying to its waypoints. True = fixed.
+TARGET_PATROL_CORRECT_HEADING = True
+
 # --- Collision --------------------------------------------------------------
 # The simulator has no collision model. An episode in which our aircraft comes
 # within this 3D distance of the target is ended and counted as a failure.
