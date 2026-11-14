@@ -6,7 +6,7 @@
 Steps
   1. train seeds 1..5 (pursuit.train), each in its own process
   2. evaluate the 5 final policies and both baselines on both suites
-  3. aggregate (pursuit.report) into runs/report
+  3. aggregate (pursuit.report) and explain failures (pursuit.failures) into runs/report
 """
 
 import argparse
@@ -31,9 +31,10 @@ def main(argv=None):
     parser.add_argument("--root", type=Path, default=Path("runs"))
     parser.add_argument("--skip-train", action="store_true")
     parser.add_argument("--workers", type=int, default=12)
+    parser.add_argument("--eval-name", default="eval", help="evaluation folder under --root")
     args = parser.parse_args(argv)
     provenance.require_clean_tree()
-    train_dir, eval_dir = args.root / "train", args.root / "eval"
+    train_dir, eval_dir = args.root / "train", args.root / args.eval_name
     if not args.skip_train:
         args.root.mkdir(parents=True, exist_ok=True)
         jobs = []
@@ -53,7 +54,9 @@ def main(argv=None):
             run(["pursuit.evaluate", "--controller", "ppo", "--model", str(train_dir / f"seed{seed}"),
                  "--suite", suite, "--out", str(eval_dir / f"ppo_seed{seed}_{suite}"),
                  "--workers", str(args.workers)])
-    run(["pursuit.report", "--runs", str(train_dir), "--evals", str(eval_dir), "--out", str(args.root / "report")])
+    report = args.root / ("report" if args.eval_name == "eval" else f"report_{args.eval_name}")
+    run(["pursuit.report", "--runs", str(train_dir), "--evals", str(eval_dir), "--out", str(report)])
+    run(["pursuit.failures", "--evals", str(eval_dir), "--out", str(report)])
 
 
 if __name__ == "__main__":

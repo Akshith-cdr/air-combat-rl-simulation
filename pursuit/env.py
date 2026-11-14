@@ -45,6 +45,23 @@ def segment_min_distance(rel_start, rel_end):
     return float(np.linalg.norm(a + t * d))
 
 
+def launch_geometry(rel, velocities):
+    """Target aspect and closing speed at the moment of launch (diagnostics only).
+
+    aspect_deg: angle between the target's velocity and the line from the target
+    back to us. 0 = target flying straight at us (head-on), 180 = we are
+    directly behind it (tail chase).
+    """
+    vp, vt = velocities
+    rel = np.asarray(rel, float)
+    d = float(np.linalg.norm(rel))
+    to_shooter = -rel / max(d, 1e-9)
+    speed = float(np.linalg.norm(vt))
+    aspect = math.degrees(math.acos(float(np.clip(vt @ to_shooter / max(speed, 1e-9), -1, 1))))
+    closing = -float((vt - vp) @ (rel / max(d, 1e-9)))
+    return {"aspect_deg": aspect, "closing_speed_mps": closing}
+
+
 def reward_terms(prev_d, d, prev_cos, cos_ata, speed, altitude, aoa, launched_before):
     """Per-step reward (Eq. 2 of the paper); event rewards are added by the caller.
 
@@ -143,6 +160,7 @@ class PursuitEnv(FighterJetEnv):
             raise RuntimeError("step() called after the episode ended")
         prev_d, prev_cos = self._distance_to_target(), self._current_cos_ata()
         rel_start = np.array(self.sim.enemy.position - self.sim.player.position, float)
+        self._pre_step = (np.array(self.sim.player.velocity, float), np.array(self.sim.enemy.velocity, float))
         launched_before = self.launched
         events_before = len(self.sim.missile_events)
         fire_request = 0.0 if launched_before else 1.0     # the fixed launch rule
@@ -162,7 +180,7 @@ class PursuitEnv(FighterJetEnv):
         if weapon["valid_fire_attempt"]:
             self.launched = True
             self.launch = {"step": self._episode_step, "time_s": self._episode_step * C.SIMULATION_DT,
-                           "range_m": prev_d, "cos_ata": prev_cos}
+                           "range_m": prev_d, "cos_ata": prev_cos, **launch_geometry(rel_start, self._pre_step)}
 
         outcome = self._outcome(weapon, events_before)
         terms = reward_terms(prev_d, d, prev_cos, cos_ata, float(obs[0]), float(obs[1]),
@@ -208,11 +226,18 @@ class PursuitEnv(FighterJetEnv):
     # -------------------------------------------------------------- reporting
     def summary(self):
         launch = self.launch or {}
+        event = next((e for e in self.sim.missile_events if e.team == "friendly"), None)
         return {"outcome": self.outcome, "success": self.outcome == SUCCESS,
                 "steps": self._episode_step, "time_s": self._episode_step * C.SIMULATION_DT,
                 "launched": self.launched, "launch_time_s": launch.get("time_s", math.nan),
                 "launch_range_m": launch.get("range_m", math.nan),
                 "launch_cos_ata": launch.get("cos_ata", math.nan),
+                "launch_aspect_deg": launch.get("aspect_deg", math.nan),
+                "launch_closing_speed_mps": launch.get("closing_speed_mps", math.nan),
+                # From the simulator's own missile event (exact, not sampled at 0.05 s).
+                "missile_closest_approach_m": event.closest_approach if event else math.nan,
+                "missile_flight_time_s": event.age if event else math.nan,
+                "missile_end_reason": event.reason if event else "",
                 "min_distance_m": self.min_distance, "return": self.episode_return}
 
     def _record(self, action, obs):
