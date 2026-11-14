@@ -3,9 +3,11 @@
     python -m pursuit.failures --evals runs/eval --out runs/report
 
 Categories (first that applies)
-  no_launch        the aircraft never reached the aligned launch band
   collision        our aircraft came within the collision radius of the target
+                   (before or after launch; the 'launched' column says which)
   ground           our aircraft went below z = 0
+  no_launch        the episode ended otherwise without the aircraft reaching
+                   the aligned launch band (timeout or boundary)
   missile_overshoot  the missile passed within NEAR_MISS_M of the target but
                    outside the 50 m hit radius, then could not turn back
   missile_outrun   the missile never came within NEAR_MISS_M (target out-turned
@@ -59,10 +61,10 @@ def missile_track(path):
 
 
 def category(row):
+    if row["outcome"] in ("collision", "ground"):
+        return row["outcome"]                     # before or after launch; see 'launched'
     if row["launched"] != "True":
         return "no_launch"
-    if row["outcome"] in ("collision", "ground"):
-        return row["outcome"]
     closest = num(row.get("missile_closest_approach_m"))
     return "missile_overshoot" if closest < NEAR_MISS_M else "missile_outrun"
 
@@ -101,7 +103,7 @@ def analyse(evals, out):
             trajectory = directory / "failures" / f"{row['scenario_id']}_{row['seed']}.csv"
             failures.append({
                 "run": directory.name, "suite": suite, "scenario_id": row["scenario_id"], "seed": row["seed"],
-                "category": kind, "outcome": row["outcome"],
+                "category": kind, "outcome": row["outcome"], "launched": row["launched"],
                 "bearing_sector": row["bearing_sector"], "target_relative_heading": row["target_relative_heading"],
                 "range_m": row["range_m"], "launch_range_m": row["launch_range_m"],
                 "launch_aspect_deg": row["launch_aspect_deg"],

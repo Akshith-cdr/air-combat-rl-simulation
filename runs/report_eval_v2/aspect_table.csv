@@ -1,0 +1,25 @@
+controller,suite,launch_aspect,launches,hits,hit_rate
+lead_pursuit,reviewed_six,head-on 0-45,74,74,1.0
+lead_pursuit,reviewed_six,45-90,17,16,0.9411764705882353
+lead_pursuit,reviewed_six,90-135,32,29,0.90625
+lead_pursuit,reviewed_six,tail 135-180,876,868,0.9908675799086758
+lead_pursuit,sweep,head-on 0-45,61,61,1.0
+lead_pursuit,sweep,45-90,25,23,0.92
+lead_pursuit,sweep,90-135,44,42,0.9545454545454546
+lead_pursuit,sweep,tail 135-180,870,857,0.9850574712643678
+ppo,reviewed_six,head-on 0-45,682,674,0.9882697947214076
+ppo,reviewed_six,45-90,1468,1444,0.9836512261580381
+ppo,reviewed_six,90-135,1944,1925,0.9902263374485597
+ppo,reviewed_six,tail 135-180,906,906,1.0
+ppo,sweep,head-on 0-45,680,678,0.9970588235294118
+ppo,sweep,45-90,1305,1267,0.9708812260536398
+ppo,sweep,90-135,1754,1719,0.9800456100342075
+ppo,sweep,tail 135-180,1301,1300,0.9992313604919293
+pure_pursuit,reviewed_six,head-on 0-45,172,171,0.9941860465116279
+pure_pursuit,reviewed_six,45-90,309,300,0.970873786407767
+pure_pursuit,reviewed_six,90-135,342,333,0.9736842105263158
+pure_pursuit,reviewed_six,tail 135-180,177,174,0.9830508474576272
+pure_pursuit,sweep,head-on 0-45,148,148,1.0
+pure_pursuit,sweep,45-90,311,296,0.9517684887459807
+pure_pursuit,sweep,90-135,339,325,0.9587020648967551
+pure_pursuit,sweep,tail 135-180,210,208,0.9904761904761905

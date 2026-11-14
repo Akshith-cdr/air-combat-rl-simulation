@@ -1,0 +1,255 @@
+{
+  "by_bearing_sector": {
+    "0": {
+      "ci95": [
+        0.9727858937875,
+        0.9918851284688701
+      ],
+      "episodes": 671,
+      "hit_rate": 0.9850968703427719,
+      "hits": 661,
+      "outcomes": {
+        "collision": 1,
+        "hit": 661,
+        "missile_expired": 9
+      }
+    },
+    "330": {
+      "ci95": [
+        0.9735378701560172,
+        0.996894121957063
+      ],
+      "episodes": 329,
+      "hit_rate": 0.9908814589665653,
+      "hits": 326,
+      "outcomes": {
+        "hit": 326,
+        "missile_expired": 3
+      }
+    }
+  },
+  "by_scenario_family": {
+    "REC-001": {
+      "ci95": [
+        0.9668655371470248,
+        0.9989421835342015
+      ],
+      "episodes": 167,
+      "hit_rate": 0.9940119760479041,
+      "hits": 166,
+      "outcomes": {
+        "hit": 166,
+        "missile_expired": 1
+      }
+    },
+    "REC-002": {
+      "ci95": [
+        0.956109323053177,
+        0.9966078145420205
+      ],
+      "episodes": 162,
+      "hit_rate": 0.9876543209876543,
+      "hits": 160,
+      "outcomes": {
+        "hit": 160,
+        "missile_expired": 2
+      }
+    },
+    "REC-003": {
+      "ci95": [
+        0.9449912795992906,
+        0.9934385936627858
+      ],
+      "episodes": 156,
+      "hit_rate": 0.9807692307692307,
+      "hits": 153,
+      "outcomes": {
+        "collision": 1,
+        "hit": 153,
+        "missile_expired": 2
+      }
+    },
+    "REC-004": {
+      "ci95": [
+        0.957141005345811,
+        0.9966897087039516
+      ],
+      "episodes": 166,
+      "hit_rate": 0.9879518072289156,
+      "hits": 164,
+      "outcomes": {
+        "hit": 164,
+        "missile_expired": 2
+      }
+    },
+    "REC-005": {
+      "ci95": [
+        0.9590654071275664,
+        0.9968421808408277
+      ],
+      "episodes": 174,
+      "hit_rate": 0.9885057471264368,
+      "hits": 172,
+      "outcomes": {
+        "hit": 172,
+        "missile_expired": 2
+      }
+    },
+    "REC-006": {
+      "ci95": [
+        0.9508180030590249,
+        0.9941530403284699
+      ],
+      "episodes": 175,
+      "hit_rate": 0.9828571428571429,
+      "hits": 172,
+      "outcomes": {
+        "hit": 172,
+        "missile_expired": 3
+      }
+    }
+  },
+  "by_target_relative_heading": {
+    "0.0": {
+      "ci95": [
+        0.9668655371470248,
+        0.9989421835342015
+      ],
+      "episodes": 167,
+      "hit_rate": 0.9940119760479041,
+      "hits": 166,
+      "outcomes": {
+        "hit": 166,
+        "missile_expired": 1
+      }
+    },
+    "120.0": {
+      "ci95": [
+        0.9590654071275664,
+        0.9968421808408277
+      ],
+      "episodes": 174,
+      "hit_rate": 0.9885057471264368,
+      "hits": 172,
+      "outcomes": {
+        "hit": 172,
+        "missile_expired": 2
+      }
+    },
+    "150.0": {
+      "ci95": [
+        0.9508180030590249,
+        0.9941530403284699
+      ],
+      "episodes": 175,
+      "hit_rate": 0.9828571428571429,
+      "hits": 172,
+      "outcomes": {
+        "hit": 172,
+        "missile_expired": 3
+      }
+    },
+    "30.0": {
+      "ci95": [
+        0.956109323053177,
+        0.9966078145420205
+      ],
+      "episodes": 162,
+      "hit_rate": 0.9876543209876543,
+      "hits": 160,
+      "outcomes": {
+        "hit": 160,
+        "missile_expired": 2
+      }
+    },
+    "60.0": {
+      "ci95": [
+        0.9449912795992906,
+        0.9934385936627858
+      ],
+      "episodes": 156,
+      "hit_rate": 0.9807692307692307,
+      "hits": 153,
+      "outcomes": {
+        "collision": 1,
+        "hit": 153,
+        "missile_expired": 2
+      }
+    },
+    "90.0": {
+      "ci95": [
+        0.957141005345811,
+        0.9966897087039516
+      ],
+      "episodes": 166,
+      "hit_rate": 0.9879518072289156,
+      "hits": 164,
+      "outcomes": {
+        "hit": 164,
+        "missile_expired": 2
+      }
+    }
+  },
+  "ci95": [
+    0.9778855575343942,
+    0.9923871796420997
+  ],
+  "controller": "lead_pursuit",
+  "episodes": 1000,
+  "hit_rate": 0.987,
+  "hits": 987,
+  "launches": 999,
+  "model": null,
+  "model_sha256": {},
+  "outcomes": {
+    "collision": 1,
+    "hit": 987,
+    "missile_expired": 12
+  },
+  "provenance": {
+    "git": {
+      "commit": "85731ef0064f7d5f396841aedddeb4729dadbe9c",
+      "dirty": false,
+      "uncommitted_changes": []
+    },
+    "task_config": {
+      "BAND_MAX_M": 1000.0,
+      "BAND_MIN_M": 500.0,
+      "BOUNDARY_PENALTY": -25.0,
+      "CLOSURE_SPEED_SCALE": 250.0,
+      "COLLISION_PENALTY": -50.0,
+      "COLLISION_RADIUS_M": 10.0,
+      "COS_ATA_GATE": 0.95,
+      "GEOMETRY_PROGRESS_SCALE": 0.1,
+      "GEOMETRY_RANGE_SCALE": 500.0,
+      "HIT_REWARD": 100.0,
+      "LAUNCH_REWARD": 5.0,
+      "MAX_EPISODE_STEPS": 2000,
+      "MAX_MISSILE_LAUNCH_DISTANCE_M": 1000.0,
+      "MAX_SAFE_AOA_DEG": 15.0,
+      "MIN_MISSILE_LAUNCH_DISTANCE_M": 500.0,
+      "MIN_SAFE_ALTITUDE": 250.0,
+      "MIN_SAFE_SPEED": 150.0,
+      "SIMULATION_DT": 0.05,
+      "TIME_PENALTY": 0.01,
+      "W_ALIGNMENT": 1.0,
+      "W_ALTITUDE": 0.5,
+      "W_AOA": 1.0,
+      "W_BOUNDARY": 0.5,
+      "W_CLOSURE": 1.0,
+      "W_GEOMETRY": 1.0,
+      "W_SPEED": 0.5
+    },
+    "versions": {
+      "gymnasium": "1.3.0",
+      "numpy": "2.5.2",
+      "panda3d": "1.10.16",
+      "platform": "Windows-11-10.0.26300-SP0",
+      "python": "3.12.10",
+      "stable_baselines3": "2.9.0",
+      "torch": "2.13.0+cpu"
+    }
+  },
+  "reportable": true,
+  "suite": "reviewed_six"
+}

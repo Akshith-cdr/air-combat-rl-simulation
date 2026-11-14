@@ -30,7 +30,8 @@ W_GEOMETRY = 1.0
 W_SPEED = 0.5
 W_ALTITUDE = 0.5
 W_AOA = 1.0
-W_BOUNDARY = 0.5
+W_BOUNDARY = 0.5               # NOT USED: PursuitEnv has no boundary shaping term (kept so
+                               # recorded configs of trained runs stay comparable)
 TIME_PENALTY = 0.01
 LAUNCH_REWARD = 5.0
 HIT_REWARD = 100.0

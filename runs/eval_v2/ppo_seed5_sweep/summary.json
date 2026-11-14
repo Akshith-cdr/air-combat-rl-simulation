@@ -1,0 +1,301 @@
+{
+  "by_bearing_sector": {
+    "0": {
+      "ci95": [
+        0.917285589227007,
+        0.9934460973688121
+      ],
+      "episodes": 84,
+      "hit_rate": 0.9761904761904762,
+      "hits": 82,
+      "outcomes": {
+        "hit": 82,
+        "missile_expired": 2
+      }
+    },
+    "120": {
+      "ci95": [
+        0.917285589227007,
+        0.9934460973688121
+      ],
+      "episodes": 84,
+      "hit_rate": 0.9761904761904762,
+      "hits": 82,
+      "outcomes": {
+        "hit": 82,
+        "missile_expired": 1,
+        "missile_floor": 1
+      }
+    },
+    "150": {
+      "ci95": [
+        0.917285589227007,
+        0.9934460973688121
+      ],
+      "episodes": 84,
+      "hit_rate": 0.9761904761904762,
+      "hits": 82,
+      "outcomes": {
+        "hit": 82,
+        "missile_expired": 2
+      }
+    },
+    "180": {
+      "ci95": [
+        0.9356045618250035,
+        0.9978954169357108
+      ],
+      "episodes": 84,
+      "hit_rate": 0.9880952380952381,
+      "hits": 83,
+      "outcomes": {
+        "collision": 1,
+        "hit": 83
+      }
+    },
+    "210": {
+      "ci95": [
+        0.9356045618250035,
+        0.9978954169357108
+      ],
+      "episodes": 84,
+      "hit_rate": 0.9880952380952381,
+      "hits": 83,
+      "outcomes": {
+        "hit": 83,
+        "missile_expired": 1
+      }
+    },
+    "240": {
+      "ci95": [
+        0.917285589227007,
+        0.9934460973688121
+      ],
+      "episodes": 84,
+      "hit_rate": 0.9761904761904762,
+      "hits": 82,
+      "outcomes": {
+        "hit": 82,
+        "missile_expired": 2
+      }
+    },
+    "270": {
+      "ci95": [
+        0.917285589227007,
+        0.9934460973688121
+      ],
+      "episodes": 84,
+      "hit_rate": 0.9761904761904762,
+      "hits": 82,
+      "outcomes": {
+        "collision": 1,
+        "hit": 82,
+        "missile_expired": 1
+      }
+    },
+    "30": {
+      "ci95": [
+        0.9356045618250035,
+        0.9978954169357108
+      ],
+      "episodes": 84,
+      "hit_rate": 0.9880952380952381,
+      "hits": 83,
+      "outcomes": {
+        "hit": 83,
+        "missile_expired": 1
+      }
+    },
+    "300": {
+      "ci95": [
+        0.9356045618250035,
+        0.9978954169357108
+      ],
+      "episodes": 84,
+      "hit_rate": 0.9880952380952381,
+      "hits": 83,
+      "outcomes": {
+        "hit": 83,
+        "missile_expired": 1
+      }
+    },
+    "330": {
+      "ci95": [
+        0.9356045618250035,
+        0.9978954169357108
+      ],
+      "episodes": 84,
+      "hit_rate": 0.9880952380952381,
+      "hits": 83,
+      "outcomes": {
+        "hit": 83,
+        "missile_expired": 1
+      }
+    },
+    "60": {
+      "ci95": [
+        0.95626827092561,
+        0.9999999999999999
+      ],
+      "episodes": 84,
+      "hit_rate": 1.0,
+      "hits": 84,
+      "outcomes": {
+        "hit": 84
+      }
+    },
+    "90": {
+      "ci95": [
+        0.9356045618250035,
+        0.9978954169357108
+      ],
+      "episodes": 84,
+      "hit_rate": 0.9880952380952381,
+      "hits": 83,
+      "outcomes": {
+        "hit": 83,
+        "missile_expired": 1
+      }
+    }
+  },
+  "by_scenario_family": {
+    "SW": {
+      "ci95": [
+        0.9743716962543699,
+        0.9902062931463383
+      ],
+      "episodes": 1008,
+      "hit_rate": 0.9841269841269841,
+      "hits": 992,
+      "outcomes": {
+        "collision": 2,
+        "hit": 992,
+        "missile_expired": 13,
+        "missile_floor": 1
+      }
+    }
+  },
+  "by_target_relative_heading": {
+    "0.0": {
+      "ci95": [
+        0.9715295016356917,
+        0.9978208182241781
+      ],
+      "episodes": 252,
+      "hit_rate": 0.9920634920634921,
+      "hits": 250,
+      "outcomes": {
+        "hit": 250,
+        "missile_expired": 2
+      }
+    },
+    "180.0": {
+      "ci95": [
+        0.9655897783687125,
+        0.9959432002019649
+      ],
+      "episodes": 252,
+      "hit_rate": 0.9880952380952381,
+      "hits": 249,
+      "outcomes": {
+        "hit": 249,
+        "missile_expired": 3
+      }
+    },
+    "270.0": {
+      "ci95": [
+        0.9490377144933023,
+        0.9890432402097974
+      ],
+      "episodes": 252,
+      "hit_rate": 0.9761904761904762,
+      "hits": 246,
+      "outcomes": {
+        "collision": 2,
+        "hit": 246,
+        "missile_expired": 4
+      }
+    },
+    "90.0": {
+      "ci95": [
+        0.9544023517975035,
+        0.9914959441947888
+      ],
+      "episodes": 252,
+      "hit_rate": 0.9801587301587301,
+      "hits": 247,
+      "outcomes": {
+        "hit": 247,
+        "missile_expired": 4,
+        "missile_floor": 1
+      }
+    }
+  },
+  "ci95": [
+    0.9743716962543699,
+    0.9902062931463383
+  ],
+  "controller": "ppo",
+  "episodes": 1008,
+  "hit_rate": 0.9841269841269841,
+  "hits": 992,
+  "launches": 1008,
+  "model": "runs/train/seed5",
+  "model_sha256": {
+    "model.zip": "63d30c8ec1411480659619b84f34edf4e0540aebd076bad6ad3987b1b3bb28ad",
+    "policy_numpy.npz": "a6e9c62be331735d6a852647327b6ca5c3d6814feed18cf05b53016db577def7",
+    "vecnormalize.pkl": "c6890dfb5672c825a3e63c8bf35dd7dedfb0e3c0ddc2e89cb8e36e3e25367ea8"
+  },
+  "outcomes": {
+    "collision": 2,
+    "hit": 992,
+    "missile_expired": 13,
+    "missile_floor": 1
+  },
+  "provenance": {
+    "git": {
+      "commit": "85731ef0064f7d5f396841aedddeb4729dadbe9c",
+      "dirty": false,
+      "uncommitted_changes": []
+    },
+    "task_config": {
+      "BAND_MAX_M": 1000.0,
+      "BAND_MIN_M": 500.0,
+      "BOUNDARY_PENALTY": -25.0,
+      "CLOSURE_SPEED_SCALE": 250.0,
+      "COLLISION_PENALTY": -50.0,
+      "COLLISION_RADIUS_M": 10.0,
+      "COS_ATA_GATE": 0.95,
+      "GEOMETRY_PROGRESS_SCALE": 0.1,
+      "GEOMETRY_RANGE_SCALE": 500.0,
+      "HIT_REWARD": 100.0,
+      "LAUNCH_REWARD": 5.0,
+      "MAX_EPISODE_STEPS": 2000,
+      "MAX_MISSILE_LAUNCH_DISTANCE_M": 1000.0,
+      "MAX_SAFE_AOA_DEG": 15.0,
+      "MIN_MISSILE_LAUNCH_DISTANCE_M": 500.0,
+      "MIN_SAFE_ALTITUDE": 250.0,
+      "MIN_SAFE_SPEED": 150.0,
+      "SIMULATION_DT": 0.05,
+      "TIME_PENALTY": 0.01,
+      "W_ALIGNMENT": 1.0,
+      "W_ALTITUDE": 0.5,
+      "W_AOA": 1.0,
+      "W_BOUNDARY": 0.5,
+      "W_CLOSURE": 1.0,
+      "W_GEOMETRY": 1.0,
+      "W_SPEED": 0.5
+    },
+    "versions": {
+      "gymnasium": "1.3.0",
+      "numpy": "2.5.2",
+      "panda3d": "1.10.16",
+      "platform": "Windows-11-10.0.26300-SP0",
+      "python": "3.12.10",
+      "stable_baselines3": "2.9.0",
+      "torch": "2.13.0+cpu"
+    }
+  },
+  "reportable": true,
+  "suite": "sweep"
+}

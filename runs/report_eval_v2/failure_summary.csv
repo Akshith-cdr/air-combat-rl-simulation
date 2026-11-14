@@ -1,0 +1,15 @@
+run,suite,no_launch,collision,ground,missile_overshoot,missile_outrun,total
+lead_pursuit_reviewed_six,reviewed_six,0,1,0,11,1,13
+lead_pursuit_sweep,sweep,0,8,0,17,0,25
+ppo_seed1_reviewed_six,reviewed_six,0,1,0,11,0,12
+ppo_seed1_sweep,sweep,0,3,0,16,0,19
+ppo_seed2_reviewed_six,reviewed_six,0,0,0,10,0,10
+ppo_seed2_sweep,sweep,0,0,0,12,0,12
+ppo_seed3_reviewed_six,reviewed_six,0,0,0,13,0,13
+ppo_seed3_sweep,sweep,0,1,0,16,0,17
+ppo_seed4_reviewed_six,reviewed_six,0,0,0,3,0,3
+ppo_seed4_sweep,sweep,0,2,0,10,0,12
+ppo_seed5_reviewed_six,reviewed_six,0,1,0,12,0,13
+ppo_seed5_sweep,sweep,0,2,0,14,0,16
+pure_pursuit_reviewed_six,reviewed_six,0,0,0,22,0,22
+pure_pursuit_sweep,sweep,0,0,0,31,0,31
