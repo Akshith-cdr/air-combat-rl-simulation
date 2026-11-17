@@ -1,0 +1,134 @@
+{
+  "_provenance": {
+    "git_commit": "d994ea86248185fdb7d9b0d259aa6c0cb3ebb902",
+    "grids": {
+      "lead_pursuit": {
+        "bank_per_deg": [
+          1.0,
+          1.5,
+          2.5
+        ],
+        "hold_range_m": [
+          600.0,
+          750.0,
+          900.0
+        ],
+        "speed_per_m": [
+          0.05,
+          0.1,
+          0.2
+        ],
+        "yaw_deg_per_unit": [
+          10.0,
+          20.0,
+          40.0
+        ]
+      },
+      "pn_pursuit": {
+        "bank_per_deg": [
+          1.0,
+          1.5,
+          2.5
+        ],
+        "hold_range_m": [
+          600.0,
+          750.0,
+          900.0
+        ],
+        "nav_gain": [
+          2.0,
+          3.0,
+          5.0
+        ],
+        "speed_per_m": [
+          0.05,
+          0.1,
+          0.2
+        ]
+      },
+      "pure_pursuit": {
+        "bank_per_deg": [
+          1.0,
+          1.5,
+          2.5
+        ],
+        "hold_range_m": [
+          600.0,
+          750.0,
+          900.0
+        ],
+        "speed_per_m": [
+          0.05,
+          0.1,
+          0.2
+        ],
+        "yaw_deg_per_unit": [
+          10.0,
+          20.0,
+          40.0
+        ]
+      }
+    },
+    "reused_from_earlier_run": [
+      "pure_pursuit"
+    ],
+    "suite": "tune"
+  },
+  "lead_pursuit": {
+    "candidates": 81,
+    "default_gains_hits": 263,
+    "episodes": 288,
+    "gains": {
+      "bank_per_deg": 1.5,
+      "hold_range_m": 750.0,
+      "max_bank_deg": 75.0,
+      "max_extra_speed": 200.0,
+      "max_lead_s": 5.0,
+      "min_speed": 160.0,
+      "nav_gain": 3.0,
+      "pn_max_ata_deg": 60.0,
+      "speed_per_m": 0.2,
+      "yaw_deg_per_unit": 20.0
+    },
+    "tuning_collisions": 0,
+    "tuning_hits": 274
+  },
+  "pn_pursuit": {
+    "candidates": 81,
+    "default_gains_hits": 258,
+    "episodes": 288,
+    "gains": {
+      "bank_per_deg": 1.0,
+      "hold_range_m": 900.0,
+      "max_bank_deg": 75.0,
+      "max_extra_speed": 200.0,
+      "max_lead_s": 5.0,
+      "min_speed": 160.0,
+      "nav_gain": 2.0,
+      "pn_max_ata_deg": 60.0,
+      "speed_per_m": 0.2,
+      "yaw_deg_per_unit": 20.0
+    },
+    "tuning_collisions": 0,
+    "tuning_hits": 275
+  },
+  "pure_pursuit": {
+    "candidates": 81,
+    "default_gains_hits": 279,
+    "episodes": 288,
+    "gains": {
+      "bank_per_deg": 1.5,
+      "hold_range_m": 600.0,
+      "max_bank_deg": 75.0,
+      "max_extra_speed": 200.0,
+      "max_lead_s": 5.0,
+      "min_speed": 160.0,
+      "nav_gain": 3.0,
+      "pn_max_ata_deg": 60.0,
+      "speed_per_m": 0.2,
+      "yaw_deg_per_unit": 20.0
+    },
+    "tuning_collisions": 0,
+    "tuning_hits": 284
+  }
+}
