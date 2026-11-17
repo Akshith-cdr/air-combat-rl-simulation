@@ -25,18 +25,25 @@ TARGET_PATROL_CORRECT_HEADING = True
 # within this 3D distance of the target is ended and counted as a failure.
 COLLISION_RADIUS_M = 10.0
 
-# --- Reward (Eq. 2 of the paper is written from this block) -----------------
-CLOSURE_SPEED_SCALE = 250.0     # m/s of band-distance reduction that gives r_closure = 1
-GEOMETRY_RANGE_SCALE = 500.0    # m outside the band over which the potential falls to 0
-GEOMETRY_PROGRESS_SCALE = 0.10
-W_CLOSURE = 1.0
-W_ALIGNMENT = 1.0
-W_GEOMETRY = 1.0
+# --- Reward (Eq. 3 of the paper is written from this block) -----------------
+# Progress shaping Phi(s') - Phi(s) on every step, including the last (env.potential).
+# Over an episode it sums to Phi(s_T) - Phi(s_0): net progress towards an aligned
+# position in the band. Along any closed loop of states it sums to exactly zero, so
+# circling cannot earn reward (the earlier clipped terms could be farmed that way).
+# Pilots: gamma*Phi(s') - Phi(s) with Phi(s_T) = 0 and small weights (A = 20, K = 4)
+# gave too weak a signal; untrained policies learned to leave the boundary instead.
+SHAPING_RANGE_WEIGHT = 100.0    # potential gained by moving from >= 5 km outside the band into it
+SHAPING_RANGE_SCALE_M = 5000.0
+SHAPING_ALIGN_WEIGHT = 20.0     # potential for pointing at the target near the band
+SHAPING_NEAR_SCALE_M = 500.0    # metres outside the band over which the alignment term fades
+# After launch only: a small per-step penalty for flying closer than SEPARATION_RADIUS_M
+# to the target, -W_SEPARATION * clip((R - d) / R, 0, 1). Always <= 0, so it cannot be
+# farmed. (In the reviewed version every PPO collision happened after launch.)
+SEPARATION_RADIUS_M = 300.0
+W_SEPARATION = 1.0
 W_SPEED = 0.5
 W_ALTITUDE = 0.5
 W_AOA = 1.0
-W_BOUNDARY = 0.5               # NOT USED: PursuitEnv has no boundary shaping term (kept so
-                               # recorded configs of trained runs stay comparable)
 TIME_PENALTY = 0.01
 LAUNCH_REWARD = 5.0
 HIT_REWARD = 100.0

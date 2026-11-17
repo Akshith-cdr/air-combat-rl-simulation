@@ -17,15 +17,20 @@ from dataclasses import asdict, replace
 from pathlib import Path
 
 from pursuit import provenance
-from pursuit.baselines import GAINS_FILE, Gains
+from pursuit.baselines import BASELINES, GAINS_FILE, Gains
 from pursuit.evaluate import evaluate
 from pursuit.scenarios import tuning_suite
 
-GRID = {
-    "bank_per_deg": (1.0, 1.5, 2.5),
-    "yaw_deg_per_unit": (10.0, 20.0, 40.0),
-    "hold_range_m": (600.0, 750.0, 900.0),
-    "speed_per_m": (0.05, 0.1, 0.2),
+SHARED = {
+    "bank_per_deg": (1.0, 1.5, 2.5),         # steering inner loop
+    "hold_range_m": (600.0, 750.0, 900.0),   # speed rule
+    "speed_per_m": (0.05, 0.1, 0.2),         # speed rule
+}
+# 81 candidates per controller. PN tunes its navigation gain in place of the yaw gain.
+GRIDS = {
+    "pure_pursuit": {**SHARED, "yaw_deg_per_unit": (10.0, 20.0, 40.0)},
+    "lead_pursuit": {**SHARED, "yaw_deg_per_unit": (10.0, 20.0, 40.0)},
+    "pn_pursuit": {**SHARED, "nav_gain": (2.0, 3.0, 5.0)},
 }
 
 
@@ -40,6 +45,7 @@ def score(rows):
 def tune(controller, out, workers):
     items = tuning_suite()
     results = []
+    GRID = GRIDS[controller]
     for values in itertools.product(*GRID.values()):
         gains = replace(Gains(), **dict(zip(GRID, values)))
         spec = {"controller": controller, "gains": asdict(gains), "out": str(out), "save_failures": False}
@@ -67,15 +73,15 @@ def main(argv=None):
     prov = provenance.record(args.allow_dirty)
     args.out.mkdir(parents=True, exist_ok=True)
     table = {}
-    for controller in ("pure_pursuit", "lead_pursuit"):
+    for controller in BASELINES:
         gains, best, results = tune(controller, args.out, args.workers)
-        default = next(r for r in results if all(r[k] == getattr(Gains(), k) for k in GRID))
+        default = next(r for r in results if all(r[k] == getattr(Gains(), k) for k in GRIDS[controller]))
         table[controller] = {"gains": asdict(gains), "tuning_hits": best["hits"],
                              "tuning_collisions": best["collisions"],
                              "default_gains_hits": default["hits"], "episodes": best["episodes"],
                              "candidates": len(results)}
     table["_provenance"] = {"git_commit": prov["git"]["commit"], "suite": "tune",
-                            "grid": {k: list(v) for k, v in GRID.items()}}
+                            "grids": {c: {k: list(v) for k, v in g.items()} for c, g in GRIDS.items()}}
     GAINS_FILE.write_text(json.dumps(table, indent=2, sort_keys=True))
     print(json.dumps(table, indent=2))
 

@@ -39,6 +39,26 @@ class Geometry(unittest.TestCase):
         self.assertEqual(band_excess(1200), 200)
         self.assertEqual(band_excess(300), 200)
 
+    def test_shaping_cannot_be_farmed_by_a_loop(self):
+        # Any closed loop of (range, cos ATA) states earns exactly zero shaping,
+        # however fast or slow each leg is (this is what clipping used to break).
+        from pursuit.env import potential, reward_terms
+        rng = np.random.default_rng(0)
+        for _ in range(200):
+            n = int(rng.integers(3, 40))
+            loop = list(zip(rng.uniform(300, 6000, n), rng.uniform(-1, 1, n)))
+            loop.append(loop[0])
+            total = sum(reward_terms(d0, d1, c0, c1, 200, 1500, 0)["shaping"]
+                        for (d0, c0), (d1, c1) in zip(loop, loop[1:]))
+            self.assertAlmostEqual(total, 0.0, places=9)
+        # Holding a state earns nothing; the potential is highest aligned inside the band.
+        self.assertEqual(reward_terms(750, 750, 0.3, 0.3, 200, 1500, 0)["shaping"], 0.0)
+        best = potential(750, 1.0)
+        self.assertAlmostEqual(best, C.SHAPING_RANGE_WEIGHT + C.SHAPING_ALIGN_WEIGHT)
+        for d in (300, 1200, 3000, 9000):
+            self.assertLess(potential(d, 1.0), best)
+        self.assertGreaterEqual(potential(1e6, -1.0), 0.0)
+
     def test_swept_collision_distance_catches_pass_through(self):
         # Relative position goes from 15 m ahead to 15 m behind within one step.
         self.assertAlmostEqual(segment_min_distance([0, 15, 3], [0, -15, 3]), 3.0)
@@ -78,6 +98,40 @@ class Scenarios(unittest.TestCase):
         self.assertEqual(len(suite), 12 * 4 * 3 * 7)
         self.assertEqual(sorted({s.bearing_sector for s in suite}), list(range(0, 360, 30)))
         self.assertEqual(len({(s.scenario_id, s.seed) for s in suite}), len(suite))
+
+    def test_new_suites_sizes_altitudes_and_independent_seeds(self):
+        from pursuit.scenarios import development_suite, sweep_alt_suite, tuning_suite
+        dev, tune, alt = development_suite(), tuning_suite(), sweep_alt_suite()
+        self.assertEqual((len(dev), len(tune), len(alt)), (72, 288, 864))
+        self.assertEqual({s.delta_altitude for s in dev}, {-450.0})
+        self.assertEqual({s.target_relative_heading for s in dev}, {90.0, 180.0, 270.0})
+        self.assertEqual({s.delta_altitude for s in tune}, {-300.0, 0.0, 300.0})
+        self.assertNotIn(0.0, {s.delta_altitude for s in alt})
+        self.assertTrue(all(abs(s.delta_altitude) <= 500 for s in alt))
+        # Test seeds are never used for development or tuning.
+        test_seeds = {s.seed for s in sweep_suite() + alt + reviewed_six_suite()}
+        self.assertFalse(test_seeds & {s.seed for s in dev + tune})
+        # The original sweep is unchanged (same ids and seeds as the reviewed version).
+        self.assertTrue(all(s.delta_altitude == 0.0 and s.scenario_id.startswith("SW-") for s in sweep_suite()))
+
+
+class Reporting(unittest.TestCase):
+    def test_holm_and_mcnemar(self):
+        from pursuit.report import holm, mcnemar_p
+        self.assertEqual(mcnemar_p(0, 0), 1.0)
+        self.assertAlmostEqual(mcnemar_p(0, 6), 2 / 64)
+        self.assertEqual(holm([0.01, 0.04, 0.03]), [0.03, 0.06, 0.06])
+
+    def test_run_names(self):
+        from pursuit.failures import split_run
+        self.assertEqual(split_run("ppo_seed3_sweep_alt"), ("ppo", "sweep_alt"))
+        self.assertEqual(split_run("pn_pursuit_reviewed_six"), ("pn_pursuit", "reviewed_six"))
+        self.assertEqual(split_run("ppo_rule_speed_seed1_sweep"), ("ppo_rule_speed", "sweep"))
+
+    def test_aspect_classes(self):
+        from pursuit.evaluate import aspect_class
+        self.assertEqual([aspect_class(a) for a in (0, 45, 46, 134, 135, 180)],
+                         ["head_on", "head_on", "beam", "beam", "tail", "tail"])
 
 
 class Episodes(unittest.TestCase):
@@ -123,11 +177,56 @@ class Episodes(unittest.TestCase):
         self.assertIn("m_x", self.env.trajectory[-1])
 
     def test_lead_pursuit_aims_at_target_inside_band(self):
-        lead = PursuitController(lead=True)
+        lead = PursuitController("lead")
         p, vp, vt = np.zeros(3), np.array([0.0, 200.0, 0.0]), np.array([190.0, 0.0, 0.0])
         far, near = np.array([0.0, 3000.0, 0.0]), np.array([0.0, 900.0, 0.0])
         self.assertFalse(np.allclose(lead.aim_point(p, vp, far, vt), far))   # leads when far
         np.testing.assert_allclose(lead.aim_point(p, vp, near, vt), near)    # pure inside band
+
+    def test_pn_turns_towards_a_crossing_target_and_points_inside_band(self):
+        pn = PursuitController("pn")
+        p, vp = np.zeros(3), np.array([0.0, 200.0, 0.0])
+        # Target 3 km ahead crossing left-to-right: the line of sight rotates clockwise -> turn right.
+        heading_error, pitch = pn.pn_command(p, vp, np.array([0.0, 3000.0, 0.0]), np.array([190.0, 0, 0]), 0.0)
+        self.assertGreater(heading_error, 0.0)
+        self.assertAlmostEqual(pitch, 0.0)
+        # Target climbing: the line of sight rotates up -> pitch up (relative to the nose, not the velocity).
+        _, pitch = pn.pn_command(p, vp, np.array([0.0, 3000.0, 0.0]), np.array([0, 0, 50.0]), -10.0)
+        self.assertGreater(pitch, -10.0)
+        # Inside the band, or far off the nose, PN hands over to pure pursuit.
+        self.assertIsNone(pn.pn_command(p, vp, np.array([0.0, 900.0, 0.0]), np.zeros(3), 0.0))
+        self.assertIsNone(pn.pn_command(p, vp, np.array([3000.0, -100.0, 0.0]), np.zeros(3), 0.0))
+
+    def test_pn_pursuit_launches(self):
+        info = run(self.env, PursuitController("pn"), scenario(bearing=30, target_relative_heading=90))
+        self.assertTrue(info["episode_summary"]["launched"])
+
+    def test_speed_swap_mixes_steering_and_throttle(self):
+        from pursuit.baselines import SpeedSwap
+
+        class Fixed:
+            def __init__(self, action):
+                self.action = np.array(action, np.float32)
+
+            def reset(self):
+                pass
+
+            def act(self, env, obs):
+                return self.action
+
+        swap = SpeedSwap(Fixed([0.1, 0.2, 0.3, 0.4]), Fixed([-1, -1, -1, -0.9]), "test")
+        np.testing.assert_allclose(swap.act(None, None), [0.1, 0.2, 0.3, -0.9], rtol=1e-6)
+
+    def test_separation_penalty_only_after_launch(self):
+        from pursuit.env import separation_penalty
+        self.assertEqual(separation_penalty(C.SEPARATION_RADIUS_M + 1), 0.0)
+        self.assertAlmostEqual(separation_penalty(0.0), -1.0)
+        self.assertAlmostEqual(separation_penalty(C.SEPARATION_RADIUS_M / 2), -0.5)
+        # Before launch the term is zero even at close range.
+        self.env.reset(options={"scenario": scenario(range_m=200, bearing=90, target_relative_heading=0)})
+        _, _, _, _, info = self.env.step(np.zeros(4))
+        self.assertFalse(info["launched"])
+        self.assertEqual(info["reward_terms"]["separation"], 0.0)
 
     def test_target_patrol_steers_to_waypoint(self):
         # A fixed waypoint 1 km to the target's left must be approached, not circled.

@@ -62,26 +62,33 @@ def launch_geometry(rel, velocities):
     return {"aspect_deg": aspect, "closing_speed_mps": closing}
 
 
-def reward_terms(prev_d, d, prev_cos, cos_ata, speed, altitude, aoa, launched_before):
-    """Per-step reward (Eq. 2 of the paper); event rewards are added by the caller.
+def potential(d, cos_ata):
+    """Shaping potential Phi(s) >= 0: high inside the launch band and pointing at the target.
 
-    Before launch the engagement terms pull the aircraft into the launch band
-    and onto the line of sight. After launch they are zero, so nothing rewards
-    flying closer to the target while the missile is in the air.
+    Phi = A * (1 - min(eps, E) / E) + K * near(d) * (1 + cos_ata) / 2,
+    eps = metres outside the band, near(d) = clip(1 - eps / NEAR_SCALE, 0, 1).
     """
-    terms = dict(closure=0.0, alignment=0.0, geometry=0.0)
-    if not launched_before:
-        dt = C.SIMULATION_DT
-        closure = float(np.clip((band_excess(prev_d) - band_excess(d)) / (C.CLOSURE_SPEED_SCALE * dt), -1, 1))
-        aligned = float(np.clip((cos_ata - C.COS_ATA_GATE) / (1 - C.COS_ATA_GATE), 0, 1))
+    eps = band_excess(d)
+    approach = 1.0 - min(eps, C.SHAPING_RANGE_SCALE_M) / C.SHAPING_RANGE_SCALE_M
+    near = float(np.clip(1.0 - eps / C.SHAPING_NEAR_SCALE_M, 0.0, 1.0))
+    return C.SHAPING_RANGE_WEIGHT * approach + C.SHAPING_ALIGN_WEIGHT * near * (1.0 + cos_ata) / 2.0
 
-        def potential(dist, cos_value):
-            near = float(np.clip(1 - band_excess(dist) / C.GEOMETRY_RANGE_SCALE, 0, 1))
-            return near * (cos_value + 1) / 2
 
-        geometry = float(np.clip((potential(d, cos_ata) - potential(prev_d, prev_cos))
-                                 / C.GEOMETRY_PROGRESS_SCALE, -1, 1))
-        terms.update(closure=closure, alignment=max(0.0, closure) * aligned, geometry=geometry)
+def separation_penalty(d):
+    """After launch: in [-1, 0], -1 at zero range, 0 beyond SEPARATION_RADIUS_M."""
+    return -float(np.clip((C.SEPARATION_RADIUS_M - d) / C.SEPARATION_RADIUS_M, 0.0, 1.0))
+
+
+def reward_terms(prev_d, d, prev_cos, cos_ata, speed, altitude, aoa):
+    """Per-step reward terms (Eq. 3 of the paper); event rewards are added by the caller.
+
+    shaping = Phi(s') - Phi(s), unclipped, on every step including the last.
+    Along any closed loop of states it sums to exactly zero, so circling cannot
+    earn reward; over an episode it sums to Phi(s_T) - Phi(s_0), the net progress
+    towards an aligned position in the launch band. (An earlier, clipped version
+    of these terms could be farmed by circling near the band.)
+    """
+    terms = {"shaping": potential(d, cos_ata) - potential(prev_d, prev_cos)}
     terms["speed"] = -float(np.clip((C.MIN_SAFE_SPEED - speed) / (0.5 * C.MIN_SAFE_SPEED), 0, 1))
     terms["altitude"] = -float(np.clip((C.MIN_SAFE_ALTITUDE - altitude) / (0.5 * C.MIN_SAFE_ALTITUDE), 0, 1))
     terms["aoa"] = -float(np.clip((abs(aoa) - C.MAX_SAFE_AOA_DEG) / 30.0, 0, 1))
@@ -186,22 +193,23 @@ class PursuitEnv(FighterJetEnv):
                            "range_m": prev_d, "cos_ata": prev_cos, **launch_geometry(rel_start, self._pre_step)}
 
         outcome = self._outcome(weapon, events_before)
+        truncated = outcome is None and self._episode_step >= C.MAX_EPISODE_STEPS
+        if truncated:
+            outcome = "timeout"
+        terminated = outcome is not None and not truncated
+
         terms = reward_terms(prev_d, d, prev_cos, cos_ata, float(obs[0]), float(obs[1]),
-                             float(obs[2]), launched_before)
+                             float(obs[2]))
+        terms["separation"] = separation_penalty(d) if launched_before else 0.0
         terms["time"] = -C.TIME_PENALTY
         terms["launch"] = C.LAUNCH_REWARD if weapon["valid_fire_attempt"] else 0.0
         terms["terminal"] = {"hit": C.HIT_REWARD, "collision": C.COLLISION_PENALTY,
                              "ground": C.COLLISION_PENALTY,
                              "boundary": C.BOUNDARY_PENALTY}.get(outcome, 0.0)
-        weights = {"closure": C.W_CLOSURE, "alignment": C.W_ALIGNMENT, "geometry": C.W_GEOMETRY,
-                   "speed": C.W_SPEED, "altitude": C.W_ALTITUDE, "aoa": C.W_AOA}
+        weights = {"speed": C.W_SPEED, "altitude": C.W_ALTITUDE, "aoa": C.W_AOA,
+                   "separation": C.W_SEPARATION}
         reward = sum(weights.get(k, 1.0) * v for k, v in terms.items())
         self.episode_return += reward
-
-        truncated = outcome is None and self._episode_step >= C.MAX_EPISODE_STEPS
-        if truncated:
-            outcome = "timeout"
-        terminated = outcome is not None and not truncated
         self.outcome = outcome
         self._record(action, obs)
         out_info = {"reward_terms": terms, "range_m": d, "cos_ata": cos_ata, "launched": self.launched}

@@ -70,11 +70,18 @@ def category(row):
     return "missile_overshoot" if closest < NEAR_MISS_M else "missile_outrun"
 
 
+SUITE_NAMES = ("sweep_alt", "reviewed_six", "sweep", "dev")     # longest suffix first
+
+
+def split_run(name):
+    """'ppo_seed3_sweep_alt' -> ('ppo', 'sweep_alt'); seeds of one controller are pooled."""
+    import re
+    suite = next(s for s in SUITE_NAMES if name.endswith("_" + s))
+    return re.sub(r"_seed\d+$", "", name[:-len(suite) - 1]), suite
+
+
 def controller_name(directory):
-    name = directory.name
-    for suite in ("_reviewed_six", "_sweep"):
-        name = name.replace(suite, "")
-    return name
+    return split_run(directory.name)[0]
 
 
 def aspect_bin(aspect):
@@ -90,8 +97,9 @@ def analyse(evals, out):
     for directory in sorted(Path(evals).iterdir()):
         if not (directory / "episodes.csv").exists():
             continue
-        suite = "sweep" if directory.name.endswith("_sweep") else "reviewed_six"
-        group = "ppo" if directory.name.startswith("ppo_") else controller_name(directory)
+        group, suite = split_run(directory.name)
+        if suite == "dev":                     # development set: learning-curve reference only
+            continue
         for row in read_csv(directory / "episodes.csv"):
             if row["launched"] == "True":
                 cell = aspect[(group, suite)][aspect_bin(num(row["launch_aspect_deg"]))]

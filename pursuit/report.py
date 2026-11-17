@@ -66,15 +66,20 @@ def comparison(evals, out):
     rows, sectors = [], defaultdict(dict)
     for path in sorted(Path(evals).glob("*/summary.json")):
         summary = json.loads(path.read_text())
-        episodes = read_csv(path.parent / "episodes.csv")
-        launched = [e for e in episodes if e["launched"] == "True"]
+        lm = summary.get("launch_metrics") or {}
+        by_class = lm.get("by_aspect_class", {})
         rows.append({
             "run": path.parent.name, "controller": summary["controller"], "suite": summary["suite"],
             "reportable": summary["reportable"], "episodes": summary["episodes"], "hits": summary["hits"],
             "hit_rate": summary["hit_rate"], "ci_low": summary["ci95"][0], "ci_high": summary["ci95"][1],
             "collisions": summary["outcomes"].get("collision", 0),
-            "median_launch_time_s": st.median(float(e["launch_time_s"]) for e in launched) if launched else "",
-            "median_launch_range_m": st.median(float(e["launch_range_m"]) for e in launched) if launched else "",
+            "launches": lm.get("launches", 0),
+            "median_launch_time_s": lm.get("launch_time_s", {}).get("median", ""),
+            "median_launch_range_m": lm.get("launch_range_m", {}).get("median", ""),
+            "median_launch_aspect_deg": lm.get("launch_aspect_deg", {}).get("median", ""),
+            "favourable_share": lm.get("favourable_share", ""),
+            **{f"launches_{c}": by_class.get(c, {}).get("launches", 0) for c in ("head_on", "beam", "tail")},
+            **{f"hit_rate_{c}": by_class.get(c, {}).get("hit_rate", "") for c in ("head_on", "beam", "tail")},
             "outcomes": json.dumps(summary["outcomes"], sort_keys=True)})
         if summary["suite"] == "sweep":
             for sector, value in summary["by_bearing_sector"].items():
@@ -100,30 +105,86 @@ def mcnemar_p(b, c):
     return 1.0 if n == 0 else min(1.0, 2 * sum(comb(n, i) for i in range(k + 1)) / 2 ** n)
 
 
-def paired_tests(evals, out):
-    """PPO seed vs baseline on identical episodes (same scenario and seed).
+def sign_test_p(wins, losses):
+    """Exact two-sided sign test (ties dropped); same formula as McNemar."""
+    return mcnemar_p(wins, losses)
 
-    ppo_only = episodes PPO hit and the baseline missed; base_only = the reverse.
+
+def holm(pvalues):
+    """Holm-Bonferroni adjusted p-values, in the input order."""
+    order = sorted(range(len(pvalues)), key=lambda i: pvalues[i])
+    adjusted, running = [0.0] * len(pvalues), 0.0
+    for rank, i in enumerate(order):
+        running = max(running, min(1.0, (len(pvalues) - rank) * pvalues[i]))
+        adjusted[i] = running
+    return adjusted
+
+
+def _episodes(path):
+    return {(e["scenario_id"], e["seed"]): e for e in read_csv(path)}
+
+
+def paired_row(suite, a_name, a_path, b_name, b_path):
+    """A vs B on identical episodes (same scenario and simulator seed).
+
+    a_only = episodes A hit and B missed; b_only = the reverse (McNemar).
+    Launch time: over episodes where both launched, how often A launched earlier
+    (sign test) and the median of the per-episode difference A - B.
     """
+    a, b = _episodes(a_path), _episodes(b_path)
+    if set(a) != set(b):
+        raise ValueError(f"{a_path} and {b_path} do not contain the same episodes")
+    hit = lambda e: e["success"] == "True"
+    a_only = sum(hit(a[k]) and not hit(b[k]) for k in a)
+    b_only = sum(hit(b[k]) and not hit(a[k]) for k in a)
+    both = [k for k in a if a[k]["launched"] == "True" and b[k]["launched"] == "True"]
+    diffs = [float(a[k]["launch_time_s"]) - float(b[k]["launch_time_s"]) for k in both]
+    earlier, later = sum(d < 0 for d in diffs), sum(d > 0 for d in diffs)
+    return {"suite": suite, "a": a_name, "b": b_name, "episodes": len(a),
+            "a_hits": sum(hit(e) for e in a.values()), "b_hits": sum(hit(e) for e in b.values()),
+            "a_only_hits": a_only, "b_only_hits": b_only, "mcnemar_p": mcnemar_p(a_only, b_only),
+            "both_launched": len(both), "a_launch_earlier": earlier, "a_launch_later": later,
+            "median_launch_time_diff_s": st.median(diffs) if diffs else "",
+            "launch_time_sign_p": sign_test_p(earlier, later)}
+
+
+def paired_tests(evals, out):
+    """Every PPO seed vs every baseline (M5), and the speed-swap controls (M4).
+
+    Families for the Holm correction: all PPO-vs-baseline tests of one suite.
+    """
+    from pursuit.baselines import BASELINES
+    evals = Path(evals)
     rows = []
-    for suite in ("reviewed_six", "sweep"):
-        for baseline in ("lead_pursuit", "pure_pursuit"):
-            base_path = Path(evals) / f"{baseline}_{suite}" / "episodes.csv"
+    for suite in ("reviewed_six", "sweep", "sweep_alt"):
+        family = []
+        for baseline in BASELINES:
+            base_path = evals / f"{baseline}_{suite}" / "episodes.csv"
             if not base_path.exists():
                 continue
-            base = {(e["scenario_id"], e["seed"]): e["success"] == "True" for e in read_csv(base_path)}
-            for path in sorted(Path(evals).glob(f"ppo_seed*_{suite}/episodes.csv")):
-                ppo = {(e["scenario_id"], e["seed"]): e["success"] == "True" for e in read_csv(path)}
-                if set(ppo) != set(base):
-                    raise ValueError(f"{path} and {base_path} do not contain the same episodes")
-                ppo_only = sum(ppo[k] and not base[k] for k in ppo)
-                base_only = sum(base[k] and not ppo[k] for k in ppo)
-                rows.append({"suite": suite, "baseline": baseline, "ppo_run": path.parent.name,
-                             "episodes": len(ppo), "ppo_only_hits": ppo_only, "baseline_only_hits": base_only,
-                             "mcnemar_p": mcnemar_p(ppo_only, base_only)})
+            for path in sorted(evals.glob(f"ppo_seed*_{suite}/episodes.csv")):
+                family.append(paired_row(suite, path.parent.name[:-len(suite) - 1], path, baseline, base_path))
+        for row, p in zip(family, holm([r["mcnemar_p"] for r in family])):
+            row["family"], row["mcnemar_p_holm"] = "ppo_vs_baseline", p
+        rows += family
+        # M4: PPO with the rule's throttle vs PPO; the rule's steering with PPO's throttle vs the rule.
+        for path in sorted(evals.glob(f"ppo_rule_speed_seed*_{suite}/episodes.csv")):
+            seed = path.parent.name[len("ppo_rule_speed_"):-len(suite) - 1]
+            ppo = evals / f"ppo_{seed}_{suite}" / "episodes.csv"
+            if ppo.exists():
+                rows.append({**paired_row(suite, f"ppo_rule_speed_{seed}", path, f"ppo_{seed}", ppo),
+                             "family": "speed_swap"})
+        for path in sorted(evals.glob(f"rule_steer_ppo_speed_seed*_{suite}/episodes.csv")):
+            seed = path.parent.name[len("rule_steer_ppo_speed_"):-len(suite) - 1]
+            rule = json.loads((path.parent / "summary.json").read_text())["rule_baseline"]
+            base = evals / f"{rule}_{suite}" / "episodes.csv"
+            if base.exists():
+                rows.append({**paired_row(suite, f"rule_steer_ppo_speed_{seed}", path, rule, base),
+                             "family": "speed_swap"})
     if rows:
+        fields = list(dict.fromkeys(k for r in rows for k in r))
         with open(out / "paired_tests.csv", "w", newline="") as handle:
-            writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+            writer = csv.DictWriter(handle, fieldnames=fields)
             writer.writeheader()
             writer.writerows(rows)
 

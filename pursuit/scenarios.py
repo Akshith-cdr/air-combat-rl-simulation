@@ -121,44 +121,68 @@ def reviewed_six_suite(count=1000, base_seed=987654321):
     return scenarios
 
 
-def sweep_suite(base_seed=20261114, repeats=SWEEP_REPEATS):
-    """All-round test: 12 bearings x 4 target headings x 3 ranges x repeats.
+def sweep_suite(base_seed=20261114, repeats=SWEEP_REPEATS, deltas=(0.0,), prefix="SW",
+                headings=SWEEP_TARGET_HEADINGS, ranges=SWEEP_RANGES):
+    """All-round test: 12 bearings x target headings x ranges x altitude offsets x repeats.
 
     Repeats differ only in the simulator seed, i.e. in the target's random
     waypoints. Seeds come from a fixed generator independent of training.
+    `deltas` are target-minus-own altitude offsets (m).
     """
     rng = np.random.default_rng(base_seed)
     scenarios = []
     for bearing in SWEEP_BEARINGS:
-        for rel in SWEEP_TARGET_HEADINGS:
-            for distance in SWEEP_RANGES:
-                for k in range(repeats):
-                    scenarios.append(Scenario(
-                        scenario_id=f"SW-b{bearing:03d}-h{rel:03d}-r{int(distance)}-{k}",
-                        seed=int(rng.integers(0, 2**32)), player_heading=0.0,
-                        player_speed=SWEEP_PLAYER_SPEED, altitude=SWEEP_ALTITUDE,
-                        range_m=distance, bearing=wrap180(bearing), delta_altitude=0.0,
-                        target_relative_heading=float(rel), target_speed=SWEEP_TARGET_SPEED))
+        for rel in headings:
+            for distance in ranges:
+                for dz in deltas:
+                    for k in range(repeats):
+                        alt = "" if len(deltas) == 1 else f"-z{int(dz):+d}"
+                        scenarios.append(Scenario(
+                            scenario_id=f"{prefix}-b{bearing:03d}-h{rel:03d}-r{int(distance)}{alt}-{k}",
+                            seed=int(rng.integers(0, 2**32)), player_heading=0.0,
+                            player_speed=SWEEP_PLAYER_SPEED, altitude=SWEEP_ALTITUDE,
+                            range_m=distance, bearing=wrap180(bearing), delta_altitude=float(dz),
+                            target_relative_heading=float(rel), target_speed=SWEEP_TARGET_SPEED))
     return scenarios
 
 
-def development_suite():
-    """Small all-round subset flown during training for the learning curves.
+# Altitude offsets of the second test sweep (training samples -500..+500 m).
+SWEEP_ALT_DELTAS = (-450.0, -300.0, -150.0, 150.0, 300.0, 450.0)
 
-    One repeat of every bearing x heading at the middle range (48 episodes),
-    with its own seeds, so it is never the final test set.
+
+def sweep_alt_suite():
+    """The sweep's geometries with the target 150-450 m above or below us
+    (12 x 4 x 3 x 6 = 864 episodes, one seed each, seeds independent of the sweep)."""
+    return sweep_suite(base_seed=20261116, repeats=1, deltas=SWEEP_ALT_DELTAS, prefix="SA")
+
+
+def development_suite():
+    """Hard subset flown during training for the learning curves (72 episodes).
+
+    The all-round 48-episode set of the reviewed version saturated at 100% early.
+    This one has only the cells that failed most often for the three baselines on
+    a separate exploration set (sweep geometry, seed 4242, not a test suite):
+    head-on or crossing targets (relative heading 90, 180, 270) starting 1500 or
+    3000 m away, from all 12 bearings, with the target 450 m below us.
+    Its own seeds; never a test set.
     """
-    return [s for s in sweep_suite(base_seed=777001, repeats=1) if s.range_m == 3000.0]
+    return sweep_suite(base_seed=777002, repeats=1, deltas=(-450.0,), prefix="DEV",
+                       headings=(90, 180, 270), ranges=(1500.0, 3000.0))
 
 
 def tuning_suite():
-    """Baseline-gain tuning set: the sweep's geometries (all 3 ranges) with 2 new
-    seed repeats (288 episodes). Seeds differ from the sweep and dev suites."""
-    return sweep_suite(base_seed=31337001, repeats=2)
+    """Baseline-gain tuning set (12 x 4 x 2 x 3 = 288 episodes): the sweep's bearings
+    and target headings at 1500 and 3000 m, with the target 300 m below, level with,
+    or 300 m above us. Seeds differ from every test and dev suite."""
+    return sweep_suite(base_seed=31337002, repeats=1, deltas=TUNE_DELTAS, prefix="TU",
+                       ranges=(1500.0, 3000.0))
 
 
-SUITES = {"reviewed_six": reviewed_six_suite, "sweep": sweep_suite, "dev": development_suite,
-          "tune": tuning_suite}
+TUNE_DELTAS = (-300.0, 0.0, 300.0)
+
+
+SUITES = {"reviewed_six": reviewed_six_suite, "sweep": sweep_suite, "sweep_alt": sweep_alt_suite,
+          "dev": development_suite, "tune": tuning_suite}
 
 
 def suite(name):

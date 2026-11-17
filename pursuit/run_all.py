@@ -1,18 +1,23 @@
 """Reproduce every number in the paper from a clean commit.
 
-Two steps, each from a clean (committed) tree:
+The tuned baseline gains (pursuit/baseline_gains.json) are part of the
+repository. They were made, from a clean tree, with
 
-    python -m pursuit.tune_baselines --out runs/final/tuning   # writes pursuit/baseline_gains.json
-    (commit pursuit/baseline_gains.json)
-    python -m pursuit.run_all                                  # everything else
+    python -m pursuit.tune_baselines --out runs/final/tuning
 
-run_all, with --root runs/final by default:
+so on a fresh clone one command reproduces everything else:
+
+    python -m pursuit.run_all                  # writes runs/reproduction/
+
   1. train seeds 1..5 (pursuit.train), each in its own process   -> train/seed<N>/
-  2. evaluate the 5 final policies and both tuned baselines on both
-     test suites                                                  -> eval/<controller>_<suite>/
-  3. fly every training checkpoint on the full sweep              -> eval/curves/
+  2. evaluate the 5 final policies and the 3 tuned baselines on the
+     3 test suites                                                -> eval/<controller>_<suite>/
+  3. speed-swap controls (M4) with each seed on the two sweeps    -> eval/<swap>_seed<N>_<suite>/
   4. aggregate (pursuit.report) and explain failures (pursuit.failures) -> report/
-Then build the paper's figures and numbers with  python paper/make_figures.py
+  (--sweep-curves also flies every training checkpoint on the full sweep -> eval/curves/)
+Then build the paper's figures and numbers with
+    python paper/make_figures.py --root runs/reproduction
+The paper's own results are in runs/final (made with --root runs/final).
 """
 
 import argparse
@@ -21,11 +26,11 @@ import sys
 from pathlib import Path
 
 from pursuit import provenance
-from pursuit.baselines import GAINS_FILE
+from pursuit.baselines import BASELINES, GAINS_FILE, SWAPS
 
 SEEDS = (1, 2, 3, 4, 5)
-SUITES = ("reviewed_six", "sweep")
-BASELINES = ("pure_pursuit", "lead_pursuit")
+SUITES = ("reviewed_six", "sweep", "sweep_alt")
+SWAP_SUITES = ("sweep", "sweep_alt")
 
 
 def run(args):
@@ -35,10 +40,20 @@ def run(args):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--root", type=Path, default=Path("runs/final"))
+    parser.add_argument("--root", type=Path, default=Path("runs/reproduction"))
     parser.add_argument("--skip-train", action="store_true")
+    parser.add_argument("--sweep-curves", action="store_true",
+                        help="also fly every checkpoint on the full sweep (about 80,000 episodes)")
     parser.add_argument("--workers", type=int, default=12)
     args = parser.parse_args(argv)
+
+    def evaluate(controller, suite, out, model=None):
+        if (out / "summary.json").exists():
+            print(f"skip {out} (done)", flush=True)
+            return
+        run(["pursuit.evaluate", "--controller", controller, "--suite", suite, "--out", str(out),
+             "--workers", str(args.workers), *(["--model", str(model)] if model else [])])
+
     provenance.require_clean_tree()
     if not GAINS_FILE.exists():
         raise SystemExit(f"{GAINS_FILE} is missing: run pursuit.tune_baselines and commit its output first")
@@ -56,14 +71,18 @@ def main(argv=None):
             raise SystemExit(f"training failed for seeds {failed}; see {args.root}/train_seed*.log")
     for suite in SUITES:
         for name in BASELINES:
-            run(["pursuit.evaluate", "--controller", name, "--suite", suite,
-                 "--out", str(eval_dir / f"{name}_{suite}"), "--workers", str(args.workers)])
+            evaluate(name, suite, eval_dir / f"{name}_{suite}")
         for seed in SEEDS:
-            run(["pursuit.evaluate", "--controller", "ppo", "--model", str(train_dir / f"seed{seed}"),
-                 "--suite", suite, "--out", str(eval_dir / f"ppo_seed{seed}_{suite}"),
-                 "--workers", str(args.workers)])
-    run(["pursuit.sweep_curves", "--runs", str(train_dir), "--out", str(eval_dir / "curves"),
-         "--workers", str(args.workers)])
+            evaluate("ppo", suite, eval_dir / f"ppo_seed{seed}_{suite}", train_dir / f"seed{seed}")
+    for name in BASELINES:                       # reference lines for the learning curves
+        evaluate(name, "dev", eval_dir / f"{name}_dev")
+    for suite in SWAP_SUITES:
+        for swap in SWAPS:
+            for seed in SEEDS:
+                evaluate(swap, suite, eval_dir / f"{swap}_seed{seed}_{suite}", train_dir / f"seed{seed}")
+    if args.sweep_curves:
+        run(["pursuit.sweep_curves", "--runs", str(train_dir), "--out", str(eval_dir / "curves"),
+             "--workers", str(args.workers)])
     run(["pursuit.report", "--runs", str(train_dir), "--evals", str(eval_dir), "--out", str(report)])
     run(["pursuit.failures", "--evals", str(eval_dir), "--out", str(report)])
 

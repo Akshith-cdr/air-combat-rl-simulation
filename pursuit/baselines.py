@@ -1,19 +1,31 @@
-"""Hand-written pursuit controllers used as baselines (reviewer comment M3).
+"""Hand-written controllers used as baselines (reviewer comments M1, M3, M4).
 
-Both use the same four controls as the PPO policy and fly in the same
+All use the same four controls as the PPO policy and fly in the same
 PursuitEnv, under the same launch rule, gate, missile and episodes.
 
-pure pursuit  aim the velocity vector at the target's current position.
-lead pursuit  aim it at the point the target will reach after the predicted
-              time to go, t_go = range / closing speed (clipped to 0..max_lead_s),
-              while outside the launch band; inside the band, aim at the
-              target itself, because the launch gate requires the velocity to
-              point at the target (the common lead-then-pure scheme).
+pure pursuit   aim the velocity vector at the target's current position.
+lead pursuit   aim it at the point the target will reach after the predicted
+               time to go, t_go = range / closing speed (clipped to 0..max_lead_s),
+               while outside the launch band; inside the band, point at the
+               target itself, because the launch gate requires the velocity to
+               point at the target ("lead-then-point").
+PN pursuit     proportional navigation of the aircraft itself: command a heading
+               (and flight-path) change of nav_gain x the line-of-sight rate x 1 s,
+               which drives the line-of-sight rate to zero (a collision course).
+               PN cannot start a turn towards a target far off the nose (the
+               line of sight barely rotates), so beyond pn_max_ata_deg it uses
+               pure pursuit; inside the band it points at the target
+               ("PN-then-point").
 
-Speed: hold the target's speed plus a range term, so the aircraft closes when
-far and matches the target's speed at `hold_range_m`.
+The bank/yaw/pitch inner loops and the speed rule are shared. Speed rule: hold
+the target's speed plus a range term, so the aircraft closes when far and
+matches the target's speed at `hold_range_m`.
+
+Speed-swap hybrids (M4): SpeedSwap takes the attitude commands (pitch, roll,
+yaw) from one controller and the throttle from another: PPO steering with the
+baseline speed rule, or a baseline's steering with PPO's throttle.
+
 Read from the simulator state directly (perfect sensing, like the policy).
-
 The gains of each controller were chosen by a grid search on a separate tuning
 suite (pursuit.tune_baselines) and are stored in baseline_gains.json.
 """
@@ -38,6 +50,8 @@ class Gains:
     speed_per_m: float = 0.1         # extra commanded speed per metre beyond hold_range_m
     max_bank_deg: float = 75.0
     max_lead_s: float = 5.0
+    nav_gain: float = 3.0            # PN: commanded turn = nav_gain x LOS rate x 1 s
+    pn_max_ata_deg: float = 60.0     # PN: pure pursuit beyond this angle off the nose
     min_speed: float = 160.0
     max_extra_speed: float = 200.0
 
@@ -55,9 +69,14 @@ def _wrap(a):
 
 
 class PursuitController:
-    def __init__(self, lead=False, gains=None):
-        self.lead = bool(lead)
-        self.name = "lead_pursuit" if lead else "pure_pursuit"
+    KINDS = {"pure_pursuit": "pure", "lead_pursuit": "lead", "pn_pursuit": "pn"}
+
+    def __init__(self, kind="pure", gains=None):
+        if kind not in ("pure", "lead", "pn"):
+            raise ValueError(kind)
+        self.kind = kind
+        self.lead = kind == "lead"
+        self.name = {v: k for k, v in self.KINDS.items()}[kind]
         self.gains = gains or Gains()
 
     def reset(self):
@@ -72,28 +91,83 @@ class PursuitController:
         t_go = float(np.clip(d / max(closing, 1.0), 0.0, self.gains.max_lead_s))
         return t + vt * t_go
 
-    def act(self, env, obs=None):
+    def pn_command(self, p, vp, t, vt, pitch):
+        """(heading error, desired pitch) in degrees from proportional navigation,
+        or None when pure pursuit applies (inside the band or target far off the nose).
+
+        The vertical correction is added to the nose pitch, not to the velocity's
+        flight-path angle: in this simulator the velocity sinks below the nose
+        (e.g. -63 deg flight path at -44 deg pitch), and referencing it makes the
+        pitch loop dive away."""
+        rel, vrel = t - p, vt - vp
+        d = float(np.linalg.norm(rel))
+        cos_ata = float(rel @ vp) / max(d * float(np.linalg.norm(vp)), 1e-9)
+        ata = math.degrees(math.acos(float(np.clip(cos_ata, -1.0, 1.0))))
+        if d <= C.BAND_MAX_M or ata > self.gains.pn_max_ata_deg:
+            return None
+        x, y, z = rel
+        h2 = max(x * x + y * y, 1e-6)
+        h = math.sqrt(h2)
+        az_rate = (y * vrel[0] - x * vrel[1]) / h2                    # rad/s, + = clockwise (right)
+        h_dot = (x * vrel[0] + y * vrel[1]) / h
+        el_rate = (h * vrel[2] - z * h_dot) / (h2 + z * z)             # rad/s, + = up
+        n = self.gains.nav_gain
+        heading_error = float(np.clip(math.degrees(n * az_rate), -90.0, 90.0))
+        desired_pitch = float(np.clip(pitch + math.degrees(n * el_rate), -45.0, 45.0))
+        return heading_error, desired_pitch
+
+    def steer(self, env):
+        """Pitch, roll and yaw commands."""
         g = self.gains
         player, enemy = env.sim.player, env.sim.enemy
         p, vp = np.array(player.position, float), np.array(player.velocity, float)
         t, vt = np.array(enemy.position, float), np.array(enemy.velocity, float)
-        aim = self.aim_point(p, vp, t, vt) - p
-
-        heading_error = _wrap(_heading(aim) - _heading(vp))        # + = aim is to the right
-        desired_pitch = float(np.clip(_elevation(aim), -45.0, 45.0))
+        command = self.pn_command(p, vp, t, vt, player.pitch) if self.kind == "pn" else None
+        if command is None:
+            aim = self.aim_point(p, vp, t, vt) - p
+            heading_error = _wrap(_heading(aim) - _heading(vp))    # + = aim is to the right
+            desired_pitch = float(np.clip(_elevation(aim), -45.0, 45.0))
+        else:
+            heading_error, desired_pitch = command
 
         desired_bank = float(np.clip(g.bank_per_deg * heading_error, -g.max_bank_deg, g.max_bank_deg))
         roll = float(np.clip((desired_bank - player.roll) / 20.0, -1, 1))          # + roll = right turn
         yaw = float(np.clip(-heading_error / g.yaw_deg_per_unit, -1, 1))           # + yaw = left turn
         pitch = float(np.clip((desired_pitch - player.pitch) / 15.0, -1, 1))
+        return np.array([pitch, roll, yaw], dtype=np.float32)
 
-        distance = float(np.linalg.norm(t - p))
-        wanted = float(np.linalg.norm(vt)) + float(np.clip(
+    def throttle(self, env):
+        """The speed rule: target speed + range term, bang-bang on the commanded speed."""
+        g = self.gains
+        player, enemy = env.sim.player, env.sim.enemy
+        distance = float(np.linalg.norm(np.array(enemy.position, float) - np.array(player.position, float)))
+        wanted = float(np.linalg.norm(np.array(enemy.velocity, float))) + float(np.clip(
             g.speed_per_m * (distance - g.hold_range_m), -g.max_extra_speed, g.max_extra_speed))
         wanted = max(g.min_speed, wanted)
         error = wanted - player.target_speed
-        throttle = 0.0 if abs(error) < 2.0 else float(np.sign(error))
-        return np.array([pitch, roll, yaw, throttle], dtype=np.float32)
+        return 0.0 if abs(error) < 2.0 else float(np.sign(error))
+
+    def act(self, env, obs=None):
+        return np.append(self.steer(env), np.float32(self.throttle(env))).astype(np.float32)
+
+
+class SpeedSwap:
+    """Attitude commands from `steer`, throttle from `speed` (reviewer comment M4).
+
+    Both controllers see the same state on every step; only their outputs are mixed.
+    """
+
+    def __init__(self, steer, speed, name):
+        self.steer_ctrl, self.speed_ctrl, self.name = steer, speed, name
+
+    def reset(self):
+        self.steer_ctrl.reset()
+        self.speed_ctrl.reset()
+
+    def act(self, env, obs):
+        action = np.array(self.steer_ctrl.act(env, obs), dtype=np.float32)
+        action[3] = np.float32(self.speed_ctrl.act(env, obs)[3])
+        return action
 
 
 def load_gains(name):
@@ -159,8 +233,34 @@ class PPOController:
         return np.clip(self.w_out @ x + self.b_out, self.low, self.high)
 
 
+BASELINES = tuple(PursuitController.KINDS)
+SWAPS = ("ppo_rule_speed", "rule_steer_ppo_speed")
+
+
+def best_baseline():
+    """The baseline with the most hits on the tuning suite (ties: first in BASELINES).
+
+    The speed-swap experiments use this one; it is chosen before any test episode is flown."""
+    if not GAINS_FILE.exists():
+        raise FileNotFoundError(f"{GAINS_FILE} is missing: run pursuit.tune_baselines first")
+    table = json.loads(GAINS_FILE.read_text())
+    return max(BASELINES, key=lambda b: (table[b]["tuning_hits"], -BASELINES.index(b)))
+
+
 def make(name, gains=None):
     """A baseline by name, with explicit gains or the tuned ones."""
-    if name not in ("pure_pursuit", "lead_pursuit"):
+    if name not in PursuitController.KINDS:
         raise KeyError(name)
-    return PursuitController(lead=name == "lead_pursuit", gains=gains or load_gains(name))
+    return PursuitController(PursuitController.KINDS[name], gains=gains or load_gains(name))
+
+
+def make_swap(kind, model, baseline=None):
+    """'ppo_rule_speed': PPO steering + the baseline's speed rule.
+    'rule_steer_ppo_speed': the baseline's steering + PPO's throttle."""
+    baseline = baseline or best_baseline()
+    rule, ppo = make(baseline), PPOController(model)
+    if kind == "ppo_rule_speed":
+        return SpeedSwap(ppo, rule, f"ppo_steer+{baseline}_speed")
+    if kind == "rule_steer_ppo_speed":
+        return SpeedSwap(rule, ppo, f"{baseline}_steer+ppo_speed")
+    raise KeyError(kind)

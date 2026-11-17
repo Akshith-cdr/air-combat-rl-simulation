@@ -18,3 +18,7 @@ paper/*.log
 paper/*.xdv
 paper/*.bbl
 paper/*.blg
+# Aborted runs with the farmable clipped reward (kept locally only, see paper Sec. VII)
+runs/final/aborted_clipped_reward/
+# Output of a fresh `python -m pursuit.run_all` (the paper's results are in runs/final)
+runs/reproduction/
