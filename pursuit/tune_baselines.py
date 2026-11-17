@@ -42,10 +42,34 @@ def score(rows):
     return hits, collisions, median_launch
 
 
-def tune(controller, out, workers):
+def load_complete(controller, out):
+    """Results of an earlier, complete grid for this controller (same grid), or None."""
+    path = out / f"{controller}.csv"
+    if not path.exists():
+        return None
+    grid = GRIDS[controller]
+    with open(path, newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    results = [{**{k: float(r[k]) for k in grid}, "episodes": int(r["episodes"]), "hits": int(r["hits"]),
+                "collisions": int(r["collisions"]), "median_launch_s": float(r["median_launch_s"])}
+               for r in rows]
+    if {tuple(r[k] for k in grid) for r in results} != set(itertools.product(*grid.values())):
+        return None
+    if any(r["episodes"] != len(tuning_suite()) for r in results):
+        return None
+    results.sort(key=lambda r: (-r["hits"], r["collisions"], r["median_launch_s"]))
+    return results
+
+
+def tune(controller, out, workers, resume=False):
+    GRID = GRIDS[controller]
+    previous = load_complete(controller, out) if resume else None
+    if previous:
+        print(f"{controller}: reusing the complete grid in {out / (controller + '.csv')}", flush=True)
+        best = previous[0]
+        return replace(Gains(), **{k: best[k] for k in GRID}), best, previous
     items = tuning_suite()
     results = []
-    GRID = GRIDS[controller]
     for values in itertools.product(*GRID.values()):
         gains = replace(Gains(), **dict(zip(GRID, values)))
         spec = {"controller": controller, "gains": asdict(gains), "out": str(out), "save_failures": False}
@@ -69,18 +93,24 @@ def main(argv=None):
     parser.add_argument("--out", type=Path, default=Path("runs/tuning"))
     parser.add_argument("--workers", type=int, default=12)
     parser.add_argument("--allow-dirty", action="store_true")
+    parser.add_argument("--resume", action="store_true",
+                        help="reuse a controller's results if <out>/<controller>.csv holds its complete grid")
     args = parser.parse_args(argv)
     prov = provenance.record(args.allow_dirty)
     args.out.mkdir(parents=True, exist_ok=True)
     table = {}
+    reused = []
     for controller in BASELINES:
-        gains, best, results = tune(controller, args.out, args.workers)
+        if args.resume and load_complete(controller, args.out):
+            reused.append(controller)
+        gains, best, results = tune(controller, args.out, args.workers, args.resume)
         default = next(r for r in results if all(r[k] == getattr(Gains(), k) for k in GRIDS[controller]))
         table[controller] = {"gains": asdict(gains), "tuning_hits": best["hits"],
                              "tuning_collisions": best["collisions"],
                              "default_gains_hits": default["hits"], "episodes": best["episodes"],
                              "candidates": len(results)}
     table["_provenance"] = {"git_commit": prov["git"]["commit"], "suite": "tune",
+                            "reused_from_earlier_run": reused,
                             "grids": {c: {k: list(v) for k, v in g.items()} for c, g in GRIDS.items()}}
     GAINS_FILE.write_text(json.dumps(table, indent=2, sort_keys=True))
     print(json.dumps(table, indent=2))
