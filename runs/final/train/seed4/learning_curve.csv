@@ -1,0 +1,17 @@
+timesteps,dev_episodes,dev_hits,dev_hit_rate,dev_outcomes,eval_seconds
+0,72,0,0.0,"{""boundary"": 49, ""timeout"": 23}",68.5
+98304,72,0,0.0,"{""boundary"": 59, ""ground"": 13}",45.7
+196608,72,2,0.027777777777777776,"{""boundary"": 70, ""hit"": 2}",76.4
+294912,72,2,0.027777777777777776,"{""boundary"": 70, ""hit"": 2}",59.4
+393216,72,11,0.1527777777777778,"{""boundary"": 60, ""hit"": 11, ""missile_expired"": 1}",55.5
+491520,72,21,0.2916666666666667,"{""boundary"": 49, ""hit"": 21, ""missile_expired"": 1, ""missile_floor"": 1}",49.5
+589824,72,23,0.3194444444444444,"{""boundary"": 48, ""hit"": 23, ""missile_floor"": 1}",50.7
+688128,72,30,0.4166666666666667,"{""boundary"": 37, ""hit"": 30, ""missile_floor"": 3, ""timeout"": 2}",42.7
+786432,72,39,0.5416666666666666,"{""boundary"": 28, ""hit"": 39, ""missile_expired"": 2, ""missile_floor"": 3}",38.2
+884736,72,42,0.5833333333333334,"{""boundary"": 23, ""collision"": 1, ""hit"": 42, ""missile_expired"": 2, ""missile_floor"": 3, ""timeout"": 1}",39.8
+983040,72,52,0.7222222222222222,"{""boundary"": 15, ""hit"": 52, ""missile_expired"": 2, ""missile_floor"": 3}",48.2
+1081344,72,54,0.75,"{""boundary"": 11, ""hit"": 54, ""missile_expired"": 1, ""missile_floor"": 2, ""timeout"": 4}",53.1
+1179648,72,55,0.7638888888888888,"{""boundary"": 12, ""hit"": 55, ""missile_expired"": 2, ""missile_floor"": 1, ""timeout"": 2}",51.1
+1277952,72,56,0.7777777777777778,"{""boundary"": 11, ""hit"": 56, ""missile_expired"": 2, ""missile_floor"": 2, ""timeout"": 1}",44.2
+1376256,72,59,0.8194444444444444,"{""boundary"": 6, ""hit"": 59, ""missile_expired"": 3, ""missile_floor"": 3, ""timeout"": 1}",39.3
+1474560,72,58,0.8055555555555556,"{""boundary"": 7, ""collision"": 1, ""hit"": 58, ""missile_expired"": 4, ""missile_floor"": 2}",38.7

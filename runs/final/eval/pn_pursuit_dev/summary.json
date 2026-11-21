@@ -1,0 +1,331 @@
+{
+  "baseline_gains": {
+    "bank_per_deg": 1.0,
+    "hold_range_m": 900.0,
+    "max_bank_deg": 75.0,
+    "max_extra_speed": 200.0,
+    "max_lead_s": 5.0,
+    "min_speed": 160.0,
+    "nav_gain": 2.0,
+    "pn_max_ata_deg": 60.0,
+    "speed_per_m": 0.2,
+    "yaw_deg_per_unit": 20.0
+  },
+  "by_bearing_sector": {
+    "0": {
+      "ci95": [
+        0.4364971749742326,
+        0.969946630588185
+      ],
+      "episodes": 6,
+      "hit_rate": 0.8333333333333334,
+      "hits": 5,
+      "outcomes": {
+        "hit": 5,
+        "missile_expired": 1
+      }
+    },
+    "120": {
+      "ci95": [
+        0.4364971749742326,
+        0.969946630588185
+      ],
+      "episodes": 6,
+      "hit_rate": 0.8333333333333334,
+      "hits": 5,
+      "outcomes": {
+        "hit": 5,
+        "missile_floor": 1
+      }
+    },
+    "150": {
+      "ci95": [
+        0.4364971749742326,
+        0.969946630588185
+      ],
+      "episodes": 6,
+      "hit_rate": 0.8333333333333334,
+      "hits": 5,
+      "outcomes": {
+        "hit": 5,
+        "missile_expired": 1
+      }
+    },
+    "180": {
+      "ci95": [
+        0.4364971749742326,
+        0.969946630588185
+      ],
+      "episodes": 6,
+      "hit_rate": 0.8333333333333334,
+      "hits": 5,
+      "outcomes": {
+        "hit": 5,
+        "missile_expired": 1
+      }
+    },
+    "210": {
+      "ci95": [
+        0.6096657083436265,
+        1.0
+      ],
+      "episodes": 6,
+      "hit_rate": 1.0,
+      "hits": 6,
+      "outcomes": {
+        "hit": 6
+      }
+    },
+    "240": {
+      "ci95": [
+        0.29999331299474324,
+        0.9032285897864654
+      ],
+      "episodes": 6,
+      "hit_rate": 0.6666666666666666,
+      "hits": 4,
+      "outcomes": {
+        "hit": 4,
+        "missile_expired": 2
+      }
+    },
+    "270": {
+      "ci95": [
+        0.6096657083436265,
+        1.0
+      ],
+      "episodes": 6,
+      "hit_rate": 1.0,
+      "hits": 6,
+      "outcomes": {
+        "hit": 6
+      }
+    },
+    "30": {
+      "ci95": [
+        0.6096657083436265,
+        1.0
+      ],
+      "episodes": 6,
+      "hit_rate": 1.0,
+      "hits": 6,
+      "outcomes": {
+        "hit": 6
+      }
+    },
+    "300": {
+      "ci95": [
+        0.4364971749742326,
+        0.969946630588185
+      ],
+      "episodes": 6,
+      "hit_rate": 0.8333333333333334,
+      "hits": 5,
+      "outcomes": {
+        "hit": 5,
+        "missile_expired": 1
+      }
+    },
+    "330": {
+      "ci95": [
+        0.4364971749742326,
+        0.969946630588185
+      ],
+      "episodes": 6,
+      "hit_rate": 0.8333333333333334,
+      "hits": 5,
+      "outcomes": {
+        "hit": 5,
+        "timeout": 1
+      }
+    },
+    "60": {
+      "ci95": [
+        0.6096657083436265,
+        1.0
+      ],
+      "episodes": 6,
+      "hit_rate": 1.0,
+      "hits": 6,
+      "outcomes": {
+        "hit": 6
+      }
+    },
+    "90": {
+      "ci95": [
+        0.6096657083436265,
+        1.0
+      ],
+      "episodes": 6,
+      "hit_rate": 1.0,
+      "hits": 6,
+      "outcomes": {
+        "hit": 6
+      }
+    }
+  },
+  "by_scenario_family": {
+    "DEV": {
+      "ci95": [
+        0.7957706167789822,
+        0.9426118039448721
+      ],
+      "episodes": 72,
+      "hit_rate": 0.8888888888888888,
+      "hits": 64,
+      "outcomes": {
+        "hit": 64,
+        "missile_expired": 6,
+        "missile_floor": 1,
+        "timeout": 1
+      }
+    }
+  },
+  "by_target_relative_heading": {
+    "180.0": {
+      "ci95": [
+        0.7415119762950233,
+        0.9768411849122034
+      ],
+      "episodes": 24,
+      "hit_rate": 0.9166666666666666,
+      "hits": 22,
+      "outcomes": {
+        "hit": 22,
+        "missile_expired": 1,
+        "missile_floor": 1
+      }
+    },
+    "270.0": {
+      "ci95": [
+        0.6899611855484453,
+        0.9565566595380588
+      ],
+      "episodes": 24,
+      "hit_rate": 0.875,
+      "hits": 21,
+      "outcomes": {
+        "hit": 21,
+        "missile_expired": 2,
+        "timeout": 1
+      }
+    },
+    "90.0": {
+      "ci95": [
+        0.6899611855484453,
+        0.9565566595380588
+      ],
+      "episodes": 24,
+      "hit_rate": 0.875,
+      "hits": 21,
+      "outcomes": {
+        "hit": 21,
+        "missile_expired": 3
+      }
+    }
+  },
+  "ci95": [
+    0.7957706167789822,
+    0.9426118039448721
+  ],
+  "controller": "pn_pursuit",
+  "episodes": 72,
+  "hit_rate": 0.8888888888888888,
+  "hits": 64,
+  "launch_metrics": {
+    "by_aspect_class": {
+      "beam": {
+        "hit_rate": 0.8627450980392157,
+        "hits": 44,
+        "launches": 51
+      },
+      "head_on": {
+        "hit_rate": 1.0,
+        "hits": 10,
+        "launches": 10
+      },
+      "tail": {
+        "hit_rate": 1.0,
+        "hits": 10,
+        "launches": 10
+      }
+    },
+    "favourable_launches": 20,
+    "favourable_share": 0.28169014084507044,
+    "favourable_share_ci95": [
+      0.19037090642304733,
+      0.39542017163212184
+    ],
+    "launch_aspect_deg": {
+      "mean": 83.95147215224515,
+      "median": 76.7672337304496
+    },
+    "launch_range_m": {
+      "mean": 838.557646845428,
+      "median": 869.54150390625
+    },
+    "launch_time_s": {
+      "mean": 8.956338028169014,
+      "median": 7.7,
+      "p25": 5.65,
+      "p75": 10.3
+    },
+    "launches": 71
+  },
+  "launches": 71,
+  "model": null,
+  "model_sha256": {},
+  "outcomes": {
+    "hit": 64,
+    "missile_expired": 6,
+    "missile_floor": 1,
+    "timeout": 1
+  },
+  "provenance": {
+    "git": {
+      "commit": "bf62aebcdf02aae5a2b655553e2dfe92c14a204e",
+      "dirty": false,
+      "uncommitted_changes": []
+    },
+    "task_config": {
+      "BAND_MAX_M": 1000.0,
+      "BAND_MIN_M": 500.0,
+      "BOUNDARY_PENALTY": -25.0,
+      "COLLISION_PENALTY": -50.0,
+      "COLLISION_RADIUS_M": 10.0,
+      "COS_ATA_GATE": 0.95,
+      "HIT_REWARD": 100.0,
+      "LAUNCH_REWARD": 5.0,
+      "MAX_EPISODE_STEPS": 2000,
+      "MAX_MISSILE_LAUNCH_DISTANCE_M": 1000.0,
+      "MAX_SAFE_AOA_DEG": 15.0,
+      "MIN_MISSILE_LAUNCH_DISTANCE_M": 500.0,
+      "MIN_SAFE_ALTITUDE": 250.0,
+      "MIN_SAFE_SPEED": 150.0,
+      "SEPARATION_RADIUS_M": 300.0,
+      "SHAPING_ALIGN_WEIGHT": 20.0,
+      "SHAPING_NEAR_SCALE_M": 500.0,
+      "SHAPING_RANGE_SCALE_M": 5000.0,
+      "SHAPING_RANGE_WEIGHT": 100.0,
+      "SIMULATION_DT": 0.05,
+      "TARGET_PATROL_CORRECT_HEADING": true,
+      "TIME_PENALTY": 0.01,
+      "W_ALTITUDE": 0.5,
+      "W_AOA": 1.0,
+      "W_SEPARATION": 1.0,
+      "W_SPEED": 0.5
+    },
+    "versions": {
+      "gymnasium": "1.3.0",
+      "numpy": "2.5.2",
+      "panda3d": "1.10.16",
+      "platform": "Windows-11-10.0.26300-SP0",
+      "python": "3.12.10",
+      "stable_baselines3": "2.9.0",
+      "torch": "2.13.0+cpu"
+    }
+  },
+  "reportable": true,
+  "rule_baseline": "pn_pursuit",
+  "suite": "dev"
+}
