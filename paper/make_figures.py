@@ -46,6 +46,7 @@ KEYS = {"ppo": "Ppo", "pure_pursuit": "Pure", "lead_pursuit": "Lead", "pn_pursui
 SUITES = (("reviewed_six", "Six"), ("sweep", "Sweep"), ("sweep_alt", "Alt"))
 SWEEPS = ("sweep", "sweep_alt")
 SEEDS = (1, 2, 3, 4, 5)
+SEED_WORDS = {1: "One", 2: "Two", 3: "Three", 4: "Four", 5: "Five"}   # LaTeX macro names cannot hold digits
 COL_W, FULL_W = 3.5, 7.16
 
 
@@ -161,6 +162,18 @@ def build_macros(d):
         m[f"{key}SweepsFav"] = pct(ls["fav"])
         m[f"{key}SweepsFavCi"] = f"{pct(ls['fav_ci'][0])}--{pct(ls['fav_ci'][1])}"
         m[f"{key}SweepsBeamShare"] = pct(ls["beam"] / ls["launches"])
+    # Per PPO seed: hit rate, boundary exits and launch share on each suite; collisions over all three.
+    for s in SEEDS:
+        word = SEED_WORDS[s]
+        for suite, tag in SUITES:
+            summary = d.summary[f"ppo_seed{s}_{suite}"]
+            rows = d.episodes[f"ppo_seed{s}_{suite}"]
+            m[f"PpoSeed{word}{tag}Rate"] = pct(summary["hit_rate"])
+            m[f"PpoSeed{word}{tag}Boundary"] = str(summary["outcomes"].get("boundary", 0))
+            m[f"PpoSeed{word}{tag}LaunchShare"] = pct(len(launched(rows)) / len(rows))
+        m[f"PpoSeed{word}Coll"] = str(sum(d.summary[f"ppo_seed{s}_{suite}"]["outcomes"].get("collision", 0)
+                                          for suite, _ in SUITES))
+    m["EpisodesPerRun"] = f"{sum(d.summary[f'pure_pursuit_{suite}']['episodes'] for suite, _ in SUITES):,}".replace(",", "{,}")
     # Margins (PPO mean minus baseline).
     for suite, tag in SUITES:
         ppo = [100 * r for r in d.rates("ppo", suite)]
@@ -192,7 +205,7 @@ def build_macros(d):
     m["PairedTests"] = str(sum(r["family"] == "ppo_vs_baseline" for r in paired))
     # Speed swap (M4).
     if d.rule:
-        m["SwapRule"] = LABELS[d.rule] if d.rule != "pn_pursuit" else "PN-then-point"
+        m["SwapRule"] = LABELS[d.rule].lower() if d.rule != "pn_pursuit" else "PN-then-point"   # used mid-sentence
         for kind in ("ppo_rule_speed", "rule_steer_ppo_speed"):
             key = KEYS[kind]
             for suite, tag in SUITES[1:]:
@@ -272,7 +285,8 @@ def build_macros(d):
         for radius in (10, 20, 30):
             total = sum(int(sens[r][f"below_{radius}m"]) for s, _ in SUITES for r in d.runs_of(controller, s))
             n = d.n_runs(controller)
-            m[f"{KEYS[controller]}Close{radius}"] = fmt(total / n) if n > 1 else str(total)
+            word = {10: "Ten", 20: "Twenty", 30: "Thirty"}[radius]    # no digits in LaTeX macro names
+            m[f"{KEYS[controller]}Close{word}"] = fmt(total / n) if n > 1 else str(total)
     # Tuned baseline gains.
     gains = json.loads((HERE.parent / "pursuit" / "baseline_gains.json").read_text())
     for b in BASELINES:
@@ -306,7 +320,7 @@ def table_comparison(d, path):
         cells += [f"{ls['time']:.1f}", f"{ls['aspect']:.0f}", f"{100 * ls['fav']:.1f}"]
         coll = sum(e["outcome"] == "collision" for s, _ in SUITES for e in d.pooled(controller, s))
         n = d.n_runs(controller)
-        cells.append(f"{coll / n:.1f}" if n > 1 else str(coll))
+        cells.append(f"{coll / n:.1f}")
         rows.append(" & ".join(cells) + r" \\")
     path.write_text("\n".join(rows) + "\n")
 
@@ -459,7 +473,7 @@ def fig_comparison(d, path):
         lows.append(per_run.min())
     floor_b = int(5 * math.floor((min(lows) - 1) / 5))
     b.set_xticks(sectors)
-    b.set_xlabel("initial target bearing (deg clockwise from our nose; 180 = behind)")
+    b.set_xlabel("initial target bearing (deg clockwise from nose; 180 = behind)")
     b.set_ylabel("hit rate (%)")
     b.set_ylim(floor_b, 100.5)
     b.set_title(f"(b) sweep, by initial bearing (axis starts at {floor_b}%)")
@@ -502,9 +516,11 @@ def fig_aspect(d, path):
             label = f"{n / n_runs:.0f}" if n_runs > 1 else str(n)
             b.text(x, 100.4, label, ha="center", va="bottom", fontsize=4.5, rotation=90)
     a.set_ylabel("share of launches (%)")
-    a.set_title("(a) target aspect at launch (two sweeps)")
+    a.set_title("(a) target aspect at launch (two sweeps)", pad=14)
     a.grid(axis="y", alpha=0.3, lw=0.4)
-    a.legend(loc="upper center", ncol=2, frameon=False, fontsize=5.5)
+    # Above the axes, between title and bars, so it never covers a bar.
+    a.legend(loc="lower center", bbox_to_anchor=(0.5, 1.0), ncol=4, frameon=False, fontsize=5.5,
+             handlelength=1.2, columnspacing=0.8, borderaxespad=0.1)
     floor = int(5 * math.floor((floor - 1) / 5))
     b.set_ylim(floor, 103.5)
     b.set_ylabel("hits per launch (%)")
@@ -527,6 +543,10 @@ def fig_overshoot(d, path):
         failures = [f for f in read_csv(d.report / "failures.csv") if f["category"] == "missile_overshoot"]
     failures.sort(key=lambda f: float(f["missile_closest_approach_m"]))
     pick = failures[len(failures) // 2]
+    if not (d.eval / pick["trajectory_file"]).exists():
+        # Failure trajectories are not in the repository (2.6 GB); a fresh clone has only this one.
+        print(f"warning: {pick['trajectory_file']} missing, keeping the existing {path.name}")
+        return pick
     rows = read_csv(d.eval / pick["trajectory_file"])
     num = lambda r, k: float(r[k])
     t = np.array([num(r, "t") for r in rows])
